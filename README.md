@@ -8,6 +8,9 @@ The json output format is simple and can for example be examined further with th
 
 Please feel free to test the Variance-Viewer for yourself with the official [web application](http://variance-viewer.informatik.uni-wuerzburg.de/).
 
+This tool has been created in a project of the [Chair of Computer Science VI - Artificial Intelligence and Applied Science of the University of Würzburg](http://www.is.informatik.uni-wuerzburg.de/en/homepage/), in the working group of [Prof. Dr. Frank Puppe](http://www.is.informatik.uni-wuerzburg.de/staff/puppe-frank/).
+
+
 ## Table of Contents
 - [Installing](#installing)
   * [Linux](#linux)
