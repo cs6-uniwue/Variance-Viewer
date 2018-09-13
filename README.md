@@ -1,4 +1,4 @@
-![viewer](https://user-images.githubusercontent.com/23743591/45492885-bd4c1b80-b76d-11e8-9ec9-357d4a56f1f7.png)
+![viewer](https://user-images.githubusercontent.com/23743591/45493637-8840c880-b76f-11e8-8efc-4e92d986aea6.png)
 
 # Variance-Viewer
 
