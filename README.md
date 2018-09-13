@@ -1,3 +1,5 @@
+![viewer](https://user-images.githubusercontent.com/23743591/45492885-bd4c1b80-b76d-11e8-9ec9-357d4a56f1f7.png)
+
 # Variance-Viewer
 
 Variance-Viewer is a automatic open-source tool for text comparison with an extendable rule based variance analysis.
