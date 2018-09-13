@@ -1,9 +1,13 @@
 :css:
-
+.wide{letter-spacing: 3px;}
+.sizeXL{font-size: 110%;}
+.sizeXXL{font-size: 130%;}
+.straight{text-decoration: underline;}
+.initial{text-decoration: underline;}
 :css:
 
 :punctuations:
-,;/\\-\\.\\?!—–´
+,;/-.?!—–´
 :punctuations:
 
 :graphemes:

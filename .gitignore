@@ -1,6 +1,7 @@
 #sass
 src/main/webapp/resources/.sass-cache/
 .sass-cache/
+*.css.map
 
 #java
 *.class
