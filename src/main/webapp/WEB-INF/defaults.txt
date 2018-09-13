@@ -1,0 +1,34 @@
+:css:
+
+:css:
+
+:punctuations:
+,;/\\-\\.\\?!—–´
+:punctuations:
+
+:graphemes:
+y i
+c t
+u v
+ſ s
+ſs ss
+ß ss
+å ao
+& et
+ce ze
+ci zi
+co ko
+ca ka
+cu ku
+ä ae
+ö oe
+ü ue
+:graphemes:
+
+:abbreviations:
+
+:abbreviations:
+
+:contenttags:
+head p
+:contenttags:
