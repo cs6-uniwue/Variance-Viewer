@@ -163,19 +163,23 @@ Render types are named equally as in the TEI documents specified and an example 
 Punctuations to consider in the punctuation variance class can be specified in the setting :punctuations:.
 These symbols can be listed in sequence as follows:
 
+```
 :punctuations:
 ,;/-.?!—–
 :punctuations:
+```
 
 ### :graphemes:
 Graphemic changes in words like *ö* to *oe* or *å* to *ao* can be set in the :graphemes: setting.
 Every line describes one graphemic change and the list is processed from top to bottom and left to right.
 This means that the tokens *maß*, *maſs* and *mass* for example are, with the following rules, considered graphemic changes to one another. 
 
+```
 :graphemes:
 ſs ss
 ß ss
 :graphemes:
+```
 
 ### :abbreviations:
 A abbreviation like *Dr.* for *doctor* can be specified in the :abbreviations: setting.
@@ -186,6 +190,8 @@ This tool supports the comparison of TEI documents.
 Text between tags, that are specified here, is tokenized and compared.
 The following setting will compare every text between head and p tags between two TEI documents: 
 
+```
 :contenttags:
 head p
 :contenttags:
+```
