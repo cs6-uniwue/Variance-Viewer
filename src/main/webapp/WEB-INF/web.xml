@@ -39,7 +39,7 @@
 	
 	<error-page>
         <error-code>400</error-code>
-        <location>/404</location>
+        <location>/400</location>
     </error-page>
 
     <error-page>
@@ -49,7 +49,7 @@
 
     <error-page>
         <error-code>500</error-code>
-        <location>/404</location>
+        <location>/500</location>
     </error-page>
 	
 </web-app>

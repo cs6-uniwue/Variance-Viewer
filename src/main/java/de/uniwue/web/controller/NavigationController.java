@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletContext;
 
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Controller;
@@ -58,23 +57,23 @@ public class NavigationController {
 				String file1Type = file1.getContentType();
 				String file2Type = file2.getContentType();
 
-				if (file1Type.equals("text/xml") && file2Type.equals("text/xml")) {
-					try {
-						TextAnnotationStruct document1 = TEIToAthenConverter.convertTEIToAthen(file1.getInputStream());
-						TextAnnotationStruct document2 = TEIToAthenConverter.convertTEIToAthen(file2.getInputStream());
-						Collection<Annotation> annotations1 = document1.getAnnotations().stream()
-								.map(a -> new Annotation(a)).collect(Collectors.toList());
-						Collection<Annotation> annotations2 = document2.getAnnotations().stream()
-								.map(a -> new Annotation(a)).collect(Collectors.toList());
-						List<ConnectedContent> differences = Diff.compareXML(document1.getText(), document2.getText(),
-								annotations1, annotations2, settings);
+				boolean filesAreTEI = file1Type.equals("text/xml") && file2Type.equals("text/xml")
+						&& TEIToAthenConverter.isTEI(file1.getInputStream())
+						&& TEIToAthenConverter.isTEI(file2.getInputStream());
 
-						model.addAttribute("format", "tei");
-						model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(document1, differences));
-						model.addAttribute("allLines", LineCreator.patch(differences));
-					} catch (ParseException e) {
-						e.printStackTrace();
-					}
+				if (filesAreTEI) {
+					TextAnnotationStruct document1 = TEIToAthenConverter.convertTEIToAthen(file1.getInputStream());
+					TextAnnotationStruct document2 = TEIToAthenConverter.convertTEIToAthen(file2.getInputStream());
+					Collection<Annotation> annotations1 = document1.getAnnotations().stream()
+							.map(a -> new Annotation(a)).collect(Collectors.toList());
+					Collection<Annotation> annotations2 = document2.getAnnotations().stream()
+							.map(a -> new Annotation(a)).collect(Collectors.toList());
+					List<ConnectedContent> differences = Diff.compareXML(document1.getText(), document2.getText(),
+							annotations1, annotations2, settings);
+
+					model.addAttribute("format", "tei");
+					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(document1, differences));
+					model.addAttribute("allLines", LineCreator.patch(differences));
 				} else {
 					// Interpret as plain text
 					String content1 = new String(file1.getBytes(), "UTF-8");
@@ -111,6 +110,15 @@ public class NavigationController {
 		return "404";
 	}
 
+	@RequestMapping(value = "/400")
+	public String error400(Model model) {
+		return "400";
+	}
+	
+	@RequestMapping(value = "/500")
+	public String error500(Model model) {
+		return "500";
+	}
 	@Bean(name = "multipartResolver")
 	public CommonsMultipartResolver multipartResolver() {
 		CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver();

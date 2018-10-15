@@ -4,10 +4,9 @@
 
 <t:webpage>
 	<article>
-		<h1>404</h1>
+		<h1>400</h1>
 		<hr>
-		<p>Sorry, we can't seem to find the page you are trying to access.</p>
-		<p>Did you maybe try to access the page via an old bookmark?</p>
+		<p>Sorry, we where unable to process your request.</p>
 		<p><a href="${pageContext.request.contextPath}\">Back</a></p>
 	</article>
 </t:webpage>
