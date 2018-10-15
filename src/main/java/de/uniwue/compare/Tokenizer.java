@@ -39,9 +39,10 @@ public class Tokenizer {
 					// Keep char count in tact while adding line separator to last token
 					if (tokenTexts.size() > 0) {
 						String lastToken = "";
-						while (tokenTexts.getLast().equals(" "))
+						while (!tokenTexts.isEmpty() && tokenTexts.getLast().equals(" "))
 							lastToken += tokenTexts.removeLast();
-						tokenTexts.add(tokenTexts.removeLast() + lastToken + System.lineSeparator());
+						final String tokenText = !tokenTexts.isEmpty() ? tokenTexts.removeLast() : "";
+						tokenTexts.add(tokenText + lastToken + System.lineSeparator());
 					} else {
 						tokenTexts.add(System.lineSeparator());
 					}
