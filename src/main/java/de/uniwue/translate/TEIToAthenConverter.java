@@ -42,11 +42,11 @@ public class TEIToAthenConverter {
 	public static boolean isTEI(InputStream is) {
 		try {
 			EKnownXMLFormat type = XMLFormatDetector.detectFormat(new TEIReader().readDocument(is, false, null).getFirst());
-			if(type == EKnownXMLFormat.TEI)
+			if(type != EKnownXMLFormat.PAGE_XML)
 				return true;
 			else
 				return false;
-		} catch (ResourceInitializationException e) {
+		} catch (Exception e) {
 			return false;
 		}
 	}
