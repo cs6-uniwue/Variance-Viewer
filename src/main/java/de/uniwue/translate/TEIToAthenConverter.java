@@ -6,6 +6,8 @@ import org.apache.uima.cas.CAS;
 import org.apache.uima.resource.ResourceInitializationException;
 
 import de.uniwue.mk.kall.formatconversion.teireader.reader.TEIReader;
+import de.uniwue.mk.kall.formatconversion.teireader.struct.EKnownXMLFormat;
+import de.uniwue.mk.kall.formatconversion.xmlFormat.detection.XMLFormatDetector;
 import de.uniwue.wa.server.editor.TextAnnotationStruct;
 
 public class TEIToAthenConverter {
@@ -30,5 +32,22 @@ public class TEIToAthenConverter {
 
 		// Wrap CAS into webAthen struct
 		return new TextAnnotationStruct(cas, null);
+	}
+
+	/**
+	 * Check if an input stream is from type TEI xml
+	 * @param is
+	 * @return
+	 */
+	public static boolean isTEI(InputStream is) {
+		try {
+			EKnownXMLFormat type = XMLFormatDetector.detectFormat(new TEIReader().readDocument(is, false, null).getFirst());
+			if(type == EKnownXMLFormat.TEI)
+				return true;
+			else
+				return false;
+		} catch (ResourceInitializationException e) {
+			return false;
+		}
 	}
 }
