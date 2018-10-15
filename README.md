@@ -55,15 +55,27 @@ to start automatically at system boot `systemctl enable tomcat8`
 It is recommended to use Eclipse.
 
 #### Java EE for Web Developer
-In Eclipse go to Help -> Install New Software -> Work with neon -> Install Web, XML, Java EE and OSGi Enterprise Development
+In Eclipse go to `Help -> Install New Software` and select `All sources` under `Work with`.
 
-#### Maven
-Install Maven as seen above and build the project.
+Afterwards select and install `Web, XML, Java EE and OSGi Enterprise Development`
 
 #### Apache Tomcat
-Download the most recent version under http://tomcat.apache.org/download-90.cgi.
+Download and extract the most recent version under http://tomcat.apache.org/download-90.cgi.
 
-Select the web perspective and add the Tomcat server.
+Open `Window` -> `Show View` -> `Other...` -> `Server` -> `Servers`
+
+Click the info that promts to add a new server, select `Apache` -> `Tomcat <version> Server` -> `Next`-> set your Tomcat installation directory -> `Finish`.
+
+#### Import Project
+Open `File` -> `Import` and select `Maven` -> `Existing Maven Projects` -> `Next`.
+
+Set the projects directory as the root directory and select `Finish`.
+
+If the maven project has not updated automatically, rightclick on `Variance-Viewer` -> `Maven` -> `Update Project...` -> `OK`
+
+#### Start Tomcat
+Rightclick on `Variance-Viewer` -> `Run As` -> `Run on Server`.
+
 
 ### Mac OS X
 
