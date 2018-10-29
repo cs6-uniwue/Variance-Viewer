@@ -184,6 +184,8 @@ function getTEIconformJSON() {
                 delete a.features["delete"];
 
                 const directSurrounding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
+                a.features["type"] = a.features["variance-type"];
+                delete a.features["variance-type"];
                 if(directSurrounding.length > 0){
                     let child = a;
                     directSurrounding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)){child.features.parent = {jsonId:s.jsonId}; child = s; }})
@@ -219,6 +221,7 @@ function getTEIconformJSON() {
                 break;
             case GROUPID + ".type.CHANGE":
                 t.name = "app";
+                t.features.push({name:'type',range:"RANGE_PRIMITIVE"});
                 break;
             default:
                 

@@ -208,6 +208,7 @@ public class DiffExporter {
 		if (!original.isEmpty()) {
 			// Change Wrapper
 			final HashMap<String, Object> changeFeatures = new HashMap<>();
+			changeFeatures.put("variance-type", GROUPID + ".variance." + content.getVarianceType().toString());
 			changeFeatures.put("insert", new JSONID(insertId));
 			changeFeatures.put("delete", new JSONID(deleteId));
 			AnnotationWrapper changeAnno = new AnnotationWrapper(GROUPID + ".type.CHANGE",

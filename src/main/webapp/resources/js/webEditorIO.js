@@ -118,7 +118,6 @@ const webEditorIO = (function () {
                 addToNameSpaces(namespaces, shortName, fullTypeName, 0);
             }
 
-            console.log(namespaces);
             //now that all namespaces are created we can continue to create the header of the document
             xmiString += '<xmi:XMI ';
             for (const ns in namespaces) {
@@ -429,7 +428,6 @@ const webEditorIO = (function () {
             //sort again and also respect the parent hierarchy
             sortAnnotations(annos, childrenMap);
             //now we can actually build the xml string
-            console.log(annos);
 
             let currentTextIndex = 0;
             let currentAnnoIndex = 0;
