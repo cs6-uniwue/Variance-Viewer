@@ -27,11 +27,7 @@ This tool has been created in a project of the [Chair of Computer Science VI - A
 For this guide tomcat version 8 and Ubuntu is used.
 
 #### Packages
-`apt-get install tomcat8`
-
-`apt-get install maven`
-
-`apt-get install openjdk-8-jdk`
+`apt-get install tomcat8 maven openjdk-8-jdk`
 
 #### Clone Repository
 `git clone https://github.com/NesbiDevelopment/Variance-Viewer.git` 
@@ -83,16 +79,19 @@ Rightclick on `Variance-Viewer` -> `Run As` -> `Run on Server`.
 Install homebrew (see https://brew.sh/).
 
 Afterwards install all required packages (java, Tomcat, git, and maven):
+
 `brew cask install java`
+
 `brew install tomcat git maven`
 
-To verify the Tomcat installation use homebrew’s services utility. Tomcat should now be listed here:
+To verify the Tomcat installation use homebrew’s services utility. 
+
+Tomcat should now be listed in the following command:
+
 `brew services list`
 
 #### Clone Repository
-Run in your desired project directory
 `git clone https://github.com/NesbiDevelopment/Variance-Viewer.git` 
-to clone the repository.
 
 #### Compile
 run `mvn clean install -f Variance-Viewer/pom.xml`.
