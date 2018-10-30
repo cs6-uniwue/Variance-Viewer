@@ -19,6 +19,11 @@ public class StorageManager {
 				// punctuationFile is faulty
 				System.err.println("Settings file is faulty. Fallback to default.");
 			}
+		
+		return getDefault(servletContext);
+	}
+
+	public static String getDefault(ServletContext servletContext) {
 		try {
 			String path = servletContext.getRealPath("WEB-INF" + File.separator + "defaults.txt");
 			byte[] encoded = Files.readAllBytes(Paths.get(path));

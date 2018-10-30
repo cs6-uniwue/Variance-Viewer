@@ -10,6 +10,10 @@ import javax.servlet.ServletContext;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -105,6 +109,19 @@ public class NavigationController {
 		}
 	}
 
+	@RequestMapping(value = "/default", method = RequestMethod.GET)
+	public ResponseEntity<byte[]> defaultSettings(Model model) {
+		final String defaultSettings = StorageManager.getDefault(servletContext);
+		final byte[] settingsBytes = defaultSettings.getBytes();
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setCacheControl("no-cache");
+		headers.setContentType(MediaType.TEXT_PLAIN);
+		headers.setContentLength(settingsBytes.length);
+
+		return new ResponseEntity<byte[]>(settingsBytes, headers, HttpStatus.OK);
+	}
+	
 	@RequestMapping(value = "/404")
 	public String error404(Model model) {
 		return "404";
