@@ -156,6 +156,8 @@ Prof. professor
 head p
 :contenttags:
 ``` 
+(The currently used default settings file, can be downloaded when opening the application and selecting ``default⇓`` )
+
 
 ### :css:
 The css tag allows the user to specify the visual appearance of the viewer.
