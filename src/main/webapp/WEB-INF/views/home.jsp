@@ -7,7 +7,7 @@
 		<h1>Compare text files</h1>
 		<hr>
 		Select (or drag and drop) two plain text or XML Files to compare to each other</br>
-		<form action="view" method="POST" enctype="multipart/form-data">
+		<form name="compare-form" action="view" method="POST" onsubmit="return validateForm()" enctype="multipart/form-data">
 			<input id="file1" name="file1" type="file"><br>
 			<input name="file2" type="file"><br>
 			<hr>
@@ -17,5 +17,7 @@
 			<input type="submit" value="Compare">
 		</form>
 	</article>
+	<section id="warning"/>
+	<script type="text/javascript" src="resources/js/lib.js"></script>
 </t:webpage>
 

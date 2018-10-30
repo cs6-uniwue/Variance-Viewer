@@ -111,6 +111,39 @@ main{
         border-radius: 5px;
     }
 }
+#warning{
+    visibility: hidden;
+    text-align: center;
+    right:0px;
+    left:0px;
+    background-color: black;
+    color: white;
+    padding: 5px;
+    margin: 0px;
+    position: absolute;
+}
+@keyframes pop-in{
+    from{ top: 0px; }
+    to{ top: 50px; }
+}
+
+@keyframes pop-out{
+    from{ top: 50px; }
+    to{ top: 0px; }
+}
+
+.pop-in{
+    top: 50px;
+    visibility: visible !important;
+    animation-name: pop-in;
+    animation-duration: 0.4s;
+}
+.pop-out{
+    top: 0px;
+    visibility: visible !important;
+    animation-name: pop-out;
+    animation-duration: 0.4s;
+}
 #legend{
     position: fixed;
     bottom: 0;
