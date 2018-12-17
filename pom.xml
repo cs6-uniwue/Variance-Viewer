@@ -165,6 +165,11 @@
 			<name>artifactory-releases</name>
 			<url>http://artifactory-ls6.informatik.uni-wuerzburg.de/artifactory/libs-release/</url>
 		</repository>
+		<repository>
+			<id>snapshots</id>
+			<name>artifactory-snapshots</name>
+			<url>http://artifactory-ls6.informatik.uni-wuerzburg.de/artifactory/libs-snapshot/</url>
+		</repository>
 	</repositories>
 
 	<distributionManagement>
