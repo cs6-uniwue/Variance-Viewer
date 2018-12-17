@@ -144,6 +144,7 @@ main{
     animation-name: pop-out;
     animation-duration: 0.4s;
 }
+
 #legend{
     position: fixed;
     bottom: 0;
@@ -153,73 +154,59 @@ main{
     padding: 7px;
     background-color: white;
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.3); 
-    .display-switches{
-        list-style:none outside none;
-        margin: 0;
-        padding: 0;
-        text-align: center;
-        .display-switch-wrapper{
-            margin:0 10px;
-            display: inline;
-            .display-switch-checkbox{
+}
+.display-switches{
+    list-style:none outside none;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    .display-switch-wrapper{
+        margin:0 10px;
+        display: inline;
+        .display-switch-checkbox{
+            width: 18px;
+            margin: 16px 5px;
+            position: relative;
+            .display-switch,.display-switch-all{ visibility: hidden; }
+            label {
+                cursor: pointer;
+                position: absolute;
+                &.ALL{ background: white; }
+                &.PUNCTUATION{ background: #f44336; }
+                &.GRAPHEMICS{ background: #ffb74d; }
+                &.ABBREVIATION { background: #9c27b0; }
+                &.TYPOGRAPHY{ background: #03a9f4; }
+                &.PARATEXT{ background: #009688; }
+                &.CONTENT{ background: #8bc34a; }
+                &.SEPARATION{ background: #e0e1e0; }
+                cursor: pointer;
+                position: absolute;
                 width: 18px;
-                margin: 16px 5px;
-                position: relative;
-                .display-switch{ visibility: hidden; }
-                label {
-                    cursor: pointer;
-                    position: absolute;
-                    width: 18px;
-                    height: 18px;
-                    top: 0;
-                    left: 0;
-                    &.ALL{
-                        background: white;
-                    }
-                    &.PUNCTUATION{
-                        background: #f44336;
-                    }
-                    &.GRAPHEMICS{
-                        background: #ffb74d;
-                    }
-                    &.ABBREVIATION {
-                        background: #9c27b0;
-                    }
-                    &.TYPOGRAPHY{
-                        background: #03a9f4;
-                    }
-                    &.PARATEXT{
-                        background: #009688;
-                    }
-                    &.CONTENT{
-                        background: #8bc34a;
-                    }
-                    &.SEPARATION{
-                        background: #e0e1e0;
-                    }
-                    border:1px solid #ddd;
-                }
-                label:after {
-                    opacity: 0.2;
-                    content: '';
-                    position: absolute;
-                    width: 9px;
-                    height: 5px;
-                    background: transparent;
-                    top: 3px;
-                    left: 3px;
-                    border: 3px solid #333;
-                    border-top: none;
-                    border-right: none;
-                
-                    transform: rotate(-45deg);
-                }
-                .checkboxFive label:hover::after {
-                    opacity: 0.5;
-                }
-                input[type=checkbox]:checked + label:after {
-                    opacity: 1;
-                }
+                height: 18px;
+                top: 0;
+                left: 0;
+                border:1px solid #ddd;
+            }
+            label:after {
+                opacity: 0.2;
+                content: '';
+                position: absolute;
+                width: 9px;
+                height: 5px;
+                background: transparent;
+                top: 3px;
+                left: 3px;
+                border: 3px solid #333;
+                border-top: none;
+                border-right: none;
+            
+                transform: rotate(-45deg);
+            }
+            .checkboxFive label:hover::after {
+                opacity: 0.5;
+            }
+            input[type=checkbox]:checked + label:after {
+                opacity: 1;
             }
         }
     }
@@ -419,6 +406,15 @@ footer{
         display: grid;
         grid-template-columns: 1fr 3fr;
         grid-gap: 10px 10px;
+    }
+    #download-switches{
+        display: none;
+        .display-switches{
+            text-align: left;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 0px 10px;
+        }
     }
     
     #download-confirm {
