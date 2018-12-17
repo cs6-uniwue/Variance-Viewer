@@ -1,4 +1,5 @@
 //*** Legend ***//
+const GROUPID = "de.uniwue.diff";
 let deselected = [];
 let deselectedTypes = ["SEPARATION"];
 let remove = [];
@@ -7,7 +8,6 @@ let removeTypes = ["PARATEXT"];
 let displaySwitches = document.querySelectorAll(".display-switch");
 displaySwitches.forEach(function (displaySwitch) {
     const wrapper = displaySwitch.closest(".display-switch-wrapper");
-
     const variancetype = displaySwitch.dataset.type;
 
     if (deselectedTypes.indexOf(variancetype) > -1)
@@ -24,18 +24,35 @@ displaySwitches.forEach(function (displaySwitch) {
                 line.classList.add("ACTIVE");
             });
             wrapper.classList.remove("INACTIVE");
+            if (deselectedTypes.indexOf(variancetype) > -1)
+                deselectedTypes = deselectedTypes.splice(deselectedTypes.indexOf(variancetype),1);
         } else {
             lines.forEach(function (line) {
                 line.classList.remove("ACTIVE");
             });
             wrapper.classList.add("INACTIVE");
+            if (deselectedTypes.indexOf(variancetype) == -1)
+                deselectedTypes.push(variancetype);
         }
+        displaySwitches.forEach((ds) => { if(ds !== this && ds.dataset.type === variancetype) ds.checked = this.checked});
     })
 });
 
 let allDisplaySwitches = document.querySelectorAll(".display-switch-all");
-allDisplaySwitches.forEach((allDS) => allDS.addEventListener("change", () =>
-    displaySwitches.forEach((ds) => { ds.checked = allDS.checked; ds.dispatchEvent(new Event("change")) })));
+allDisplaySwitches.forEach((allDS) => allDS.addEventListener("change", () =>{
+    allDisplaySwitches.forEach((other) => {if(other !== allDS) other.checked = allDS.checked});
+    displaySwitches.forEach((ds) => { 
+        ds.checked = allDS.checked; 
+        ds.dispatchEvent(new Event("change")); 
+        const variancetype = ds.dataset.type;
+        if(ds.checked)
+            if (deselectedTypes.indexOf(variancetype) > -1)
+                deselectedTypes = deselectedTypes.splice(deselectedTypes.indexOf(variancetype),1);
+        else
+            if (deselectedTypes.indexOf(variancetype) == -1)
+                deselectedTypes.push(variancetype);
+    });
+}));
 
 //Deselect/remove switches
 deselected.forEach((ds) => { ds.checked = false; ds.dispatchEvent(new Event("change")) });
@@ -47,6 +64,7 @@ let blur = document.querySelector("#blur");
 let fileNameSelect = document.querySelector("#download-filename");
 let fileTypeSelect = document.querySelector("#download-filetype");
 let browserWarning = document.querySelector("#browser-warning");
+let downloadSwitches = document.querySelector("#download-switches");
 
 function openDownload() {
     downloadSection.style.display = "block";
@@ -107,10 +125,12 @@ fileTypeSelect.addEventListener("change", () => {
 
     switch (filetype) {
         case "pdf":
+            downloadSwitches.style.display = "block";
             if (!usesChromium)
                 browserWarning.style.display = "block";
             break;
         default:
+            downloadSwitches.style.display = "none";
             browserWarning.style.display = "none";
     }
 });
@@ -121,7 +141,6 @@ blur.addEventListener("click", () => closeDownload());
 
 
 /*** Converter ***/
-const GROUPID = "de.uniwue.diff";
 function getTEIconformJSON() {
     let teiJson = JSON.parse(JSON.stringify(exportJSON));
 

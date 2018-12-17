@@ -77,9 +77,30 @@
 					<option value="jsonAthen">Athen (JSON)</option>
 					<option value="pdf">PDF</option>
 				</select>
+
+			</section>
+			<section id="download-switches">
+				<ul class="display-switches">
+					<li class="display-switch-wrapper ALL">
+						<span class="display-switch-checkbox">
+							<input id="checkboxALL" type="checkbox" class="display-switch-all" checked="checked">
+							<label for="checkboxALL" class="switch ALL"></label>
+						</span>
+						<c:out value="ALL"></c:out>
+					</li>
+					<c:forEach items="${variancetypes}" var="variancetype">
+					<li class="display-switch-wrapper">
+						<span class="display-switch-checkbox">
+							<input id="checkbox${variancetype}" type="checkbox" class="display-switch" data-type="${variancetype}" checked="checked">
+							<label for="checkbox${variancetype}" class="switch ${variancetype}"></label>
+						</span>
+						<c:out value="${variancetype}"></c:out>
+					</li>
+					</c:forEach>
+				</ul> 
 			</section>
 		</form>
-		<section id="browser-warning">Your browser does not completely support this format.</section>
+		<section id="browser-warning">Your browser does not completely support this format.<br> You may need to manually set the save name and enable "Print&nbspBackground&nbspColor" in your print options.</section>
 		<section id="download-confirm">
 			<button id="download-cancel" type="button">Cancel</button>
 			<button id="download-save" type="button">Save</button>
