@@ -1,7 +1,9 @@
 package de.uniwue.compare.token;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -57,9 +59,14 @@ public class Token {
 	}
 
 	public String getAnnotationsString() {
+		final Queue<String> annotation_q = new LinkedList<String>(annotations);
 		String toString = "";
-		for (String annotation : annotations)
-			toString += annotation + " ";
+		while(!annotation_q.isEmpty()) {
+			final String annotation = annotation_q.remove();
+			toString += annotation;
+			if(!annotation_q.isEmpty())
+				toString += " ";
+		}
 		return toString;
 	}
 
