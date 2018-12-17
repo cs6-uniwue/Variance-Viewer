@@ -33,17 +33,6 @@ public class Diff {
 		final List<Annotation> sortedAnnotations2 = new ArrayList<>(annotations2);
 		sortedAnnotations2.sort(annotationComparator);
 		
-		for(Annotation a : sortedAnnotations1) { 
-			System.out.println(a.toString());
-			for(String s: a.getFeatures().keySet())
-				System.out.println(s+": "+a.getFeatures().get(s));
-		}
-
-		for(Annotation a : sortedAnnotations2) { 
-			System.out.println(a.toString());
-			for(String s: a.getFeatures().keySet())
-				System.out.println(s+": "+a.getFeatures().get(s));
-		}
 		// Compute diff. Get the Patch object.
 		final List<Token> tokens1 = Tokenizer.tokenize(content1Text, sortedAnnotations1,
 				normalizerStorage.getContentTags());

@@ -1,7 +1,7 @@
 :css:
 .wide{letter-spacing: 3px;}
-.sizeXL{font-size: 110%;}
-.sizeXXL{font-size: 130%;}
+.sizeXL{font-size: x-large;}
+.sizeXXL{font-size: xx-large;}
 .straight{text-decoration: underline;}
 .initial{text-decoration: underline;}
 :css:
