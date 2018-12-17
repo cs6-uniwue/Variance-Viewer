@@ -32,7 +32,18 @@ public class Diff {
 		sortedAnnotations1.sort(annotationComparator);
 		final List<Annotation> sortedAnnotations2 = new ArrayList<>(annotations2);
 		sortedAnnotations2.sort(annotationComparator);
+		
+		for(Annotation a : sortedAnnotations1) { 
+			System.out.println(a.toString());
+			for(String s: a.getFeatures().keySet())
+				System.out.println(s+": "+a.getFeatures().get(s));
+		}
 
+		for(Annotation a : sortedAnnotations2) { 
+			System.out.println(a.toString());
+			for(String s: a.getFeatures().keySet())
+				System.out.println(s+": "+a.getFeatures().get(s));
+		}
 		// Compute diff. Get the Patch object.
 		final List<Token> tokens1 = Tokenizer.tokenize(content1Text, sortedAnnotations1,
 				normalizerStorage.getContentTags());
@@ -45,24 +56,9 @@ public class Diff {
 		// Text compare
 		final Patch<TextToken> textPatch = DiffUtils.diff(textTokens1, textTokens2);
 		final List<Delta<TextToken>> textDeltas = textPatch.getDeltas();
-		for (Delta<TextToken> text : textDeltas) {
-			if (text.getOriginal().getLines().size() > 0 && text.getOriginal().getLines().get(0).getBegin() < 1000)
-				System.out.println(text.getOriginal().getLines().get(0).getBegin());
-			if (text.getRevised().getLines().size() > 0 && text.getRevised().getLines().get(0).getBegin() < 1000)
-				System.out.println(text.getRevised().getLines().get(0).getBegin());
 
-		}
-		for (ConnectedContent content : DiffCreator.patch(textTokens1, textTokens2, textDeltas, true,
-				normalizerStorage)) {
-			if (content.getOriginal() != null && content.getOriginal().size() > 0
-					&& content.getOriginal().get(0).getBegin() < 1000)
-				System.out.println(content.getOriginal().get(0).getBegin());
 
-			if (content.getRevised() != null && content.getRevised().size() > 0
-					&& content.getRevised().get(0).getBegin() < 1000)
-				System.out.println(content.getRevised().get(0).getBegin());
-		}
-
+		
 		return DiffCreator.patch(textTokens1, textTokens2, textDeltas, true, normalizerStorage);
 	}
 

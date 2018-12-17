@@ -2,6 +2,7 @@ package de.uniwue.compare;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -92,8 +93,20 @@ public class Tokenizer {
 		for (Annotation annotation : annotations) {
 			final Map<String, String> features = annotation.getFeatures();
 
-			if (features.containsKey("rend")) {
-				final String rend = features.get("rend");
+			// Extract attributes from features
+			final Map<String, String> attributes = new HashMap<String,String>();
+			if (features.containsKey("Attributes")) {
+				String[] attribute_strings = features.get("Attributes").split("##");
+				for(String attribute_string: attribute_strings) {
+					if(attribute_string.contains("=")) {
+						String[] att_val = attribute_string.split("=");
+						attributes.put(att_val[0], att_val[1]);
+					}
+				}
+			}
+			
+			if(attributes.containsKey("rend")) {
+				final String rend = attributes.get("rend");
 				final int annotationBegin = annotation.getBegin();
 				final int annotationEnd = annotation.getEnd();
 				if (annotationBegin == annotationEnd) {
