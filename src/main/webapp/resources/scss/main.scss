@@ -458,7 +458,11 @@ footer{
     * {
        font-size: $default-font-size-print;
     }
+    body{
+        display: block;
+    }
     main {
+        flex: block;
         article{
             margin: 0px;
         }

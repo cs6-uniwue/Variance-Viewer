@@ -79,7 +79,7 @@
 				</select>
 			</section>
 		</form>
-		<section id="browser-warning">Your browser does not completely support this format.</section>
+		<section id="browser-warning">Your browser does not completely support this format.<br> You may need to manually set the save name and enable "Print&nbspBackground&nbspColor" in your print options.</section>
 		<section id="download-confirm">
 			<button id="download-cancel" type="button">Cancel</button>
 			<button id="download-save" type="button">Save</button>
