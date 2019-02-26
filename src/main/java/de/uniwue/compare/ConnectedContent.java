@@ -111,6 +111,6 @@ public class ConnectedContent {
 
 	@Override
 	public String toString() {
-		return "[" + contentType + ": \'" + original + "\', \'" + revised + "\']";
+		return "[" + contentType +" | " + varianceType + ": \'" + original + "\', \'" + revised + "\']";
 	}
 }

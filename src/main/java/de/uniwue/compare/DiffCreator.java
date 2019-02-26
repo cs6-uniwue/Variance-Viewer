@@ -41,6 +41,7 @@ public class DiffCreator {
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
 
+		ConnectedContent curContent = null;
 		for (Delta<? extends Token> delta : diffs) {
 			final Chunk<? extends Token> original = delta.getOriginal();
 			final Chunk<? extends Token> revised = delta.getRevised();
@@ -48,7 +49,8 @@ public class DiffCreator {
 			final int currentRevisedPosition = revised.getPosition();
 			TYPE type = delta.getType();
 
-			// Get equals in between changes
+			// Get equal content in between changes (Delta only lists changes not equal
+			// content)
 			if (currentOriginalPosition > prevOriginalEndPosition + 1
 					|| currentRevisedPosition > prevRevisedEndPosition + 1) {
 				List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
@@ -68,22 +70,39 @@ public class DiffCreator {
 					List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
 							annotationPatch.getDeltas(), false, normalizerStorage);
 
-					for (ConnectedContent annotationContent : annotationDiff)
+					for (ConnectedContent annotationContent : annotationDiff) {
 						if (!annotationContent.getContentType().equals(ContentType.EQUAL))
 							annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
 
-					content.addAll(annotationDiff);
+						// Add to last content (if of same type) or create new content
+						if (curContent == null
+								|| !curContent.getContentType().equals(annotationContent.getContentType())
+								|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
+							curContent = annotationContent;
+							content.add(curContent);
+						} else {
+							curContent.addOriginal(annotationContent.getOriginal());
+							curContent.addRevised(annotationContent.getRevised());
+						}
+					}
 				} else {
-					content.add(new ConnectedContent(new LinkedList<Token>(equalOriginalLines)));
+					// Add to last equal content (if of same type) or create new content
+					if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
+						curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
+						content.add(curContent);
+					} else {
+						curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
+					}
 				}
 			}
 
-			ConnectedContent curContent = null;
 			switch (type) {
 			case INSERT:
+				// Add to last insert content (if of same type) or create new content
 				curContent = insert(revised, curContent, content, normalizerStorage);
 				break;
 			case DELETE:
+				// Add to last delete content (if of same type) or create new content
 				curContent = delete(original, curContent, content, normalizerStorage);
 				break;
 			case CHANGE:
@@ -122,9 +141,17 @@ public class DiffCreator {
 								originalTest.highlightEverything();
 								revisedTest.highlightEverything();
 							}
-							curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
-							curContent.setVarianceType(varianceType);
-							content.add(curContent);
+
+							// Add to last content (if of same type) or create new content
+							if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
+									|| !curContent.getVarianceType().equals(varianceType)) {
+								curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
+								curContent.setVarianceType(varianceType);
+								content.add(curContent);
+							} else {
+								curContent.addOriginal(originalTest);
+								curContent.addRevised(revisedTest);
+							}
 						}
 					}
 					LinkedList<Token> unequalTokensOriginal = new LinkedList<Token>(originalTokens
@@ -135,17 +162,26 @@ public class DiffCreator {
 					int revisedCount = unequalTokensRevised.size();
 
 					if (originalCount == 0 && revisedCount > 0) {
+						// Add to last insert content (if of same type) or create new content
 						curContent = insert(unequalTokensRevised, curContent, content, normalizerStorage);
 					} else if (originalCount > 0 && revisedCount == 0) {
+						// Add to last delete content (if of same type) or create new content
 						curContent = delete(unequalTokensOriginal, curContent, content, normalizerStorage);
 					} else if (originalCount > 0 && revisedCount > 0) {
 						unequalTokensOriginal.forEach(t -> t.highlightEverything());
 						unequalTokensRevised.forEach(t -> t.highlightEverything());
 
-						curContent = new ConnectedContent(unequalTokensOriginal, unequalTokensRevised,
-								ContentType.CHANGE);
-						curContent.setVarianceType(VarianceType.CONTENT);
-						content.add(curContent);
+						// Add to last content (if of same type) or create new content
+						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
+								|| !curContent.getVarianceType().equals(VarianceType.CONTENT)) {
+							curContent = new ConnectedContent(unequalTokensOriginal, unequalTokensRevised,
+									ContentType.CHANGE);
+							curContent.setVarianceType(VarianceType.CONTENT);
+							content.add(curContent);
+						} else {
+							curContent.addOriginal(unequalTokensOriginal);
+							curContent.addRevised(unequalTokensRevised);
+						}
 					}
 
 					lastOriginalPosition = testDelta.getOriginal().last();
@@ -171,9 +207,17 @@ public class DiffCreator {
 							originalTest.highlightEverything();
 							revisedTest.highlightEverything();
 						}
-						curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
-						curContent.setVarianceType(varianceType);
-						content.add(curContent);
+
+						// Add to last content (if of same type) or create new content
+						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
+								|| !curContent.getVarianceType().equals(varianceType)) {
+							curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
+							curContent.setVarianceType(varianceType);
+							content.add(curContent);
+						} else {
+							curContent.addOriginal(originalTest);
+							curContent.addRevised(revisedTest);
+						}
 					}
 				}
 
@@ -183,7 +227,8 @@ public class DiffCreator {
 			prevOriginalEndPosition = original.last();
 			prevRevisedEndPosition = revised.last();
 		}
-		// Add equals that are the end of the document
+		// Add equals that are the end of the document (Delta only lists changes not
+		// equal content)
 		if (originalLines.size() > prevOriginalEndPosition + 1) {
 			List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
 					originalLines.size());
@@ -201,13 +246,30 @@ public class DiffCreator {
 				List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
 						annotationPatch.getDeltas(), false, normalizerStorage);
 
-				for (ConnectedContent annotationContent : annotationDiff)
+				for (ConnectedContent annotationContent : annotationDiff) {
 					if (!annotationContent.getContentType().equals(ContentType.EQUAL))
 						annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
 
+					// Add to last content (if of same type) or create new content
+					if (curContent == null || !curContent.getContentType().equals(annotationContent.getContentType())
+							|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
+						curContent = annotationContent;
+						content.add(curContent);
+					} else {
+						curContent.addOriginal(annotationContent.getOriginal());
+						curContent.addRevised(annotationContent.getRevised());
+					}
+				}
+
 				content.addAll(annotationDiff);
 			} else {
-				content.add(new ConnectedContent(new LinkedList<Token>(equalOriginalLines)));
+				// Add to last equal content (if of same type) or create new content
+				if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
+					curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
+					content.add(curContent);
+				} else {
+					curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
+				}
 			}
 		}
 
