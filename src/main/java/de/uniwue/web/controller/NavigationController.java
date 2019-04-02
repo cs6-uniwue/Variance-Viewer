@@ -53,8 +53,20 @@ public class NavigationController {
 			@RequestParam("file2") MultipartFile file2,
 			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
 		if (!file1.isEmpty() && !file2.isEmpty()) {
-			// Read normalize files
-			Settings settings = new Settings(StorageManager.getSettings(settingsFile, servletContext));
+			// Read normalize files / settings
+			Settings settings;
+			if(!settingsFile.isEmpty()) {
+				try {
+					String settingsContent = StorageManager.getSettings(settingsFile, servletContext);
+					settings = new Settings(settingsContent);
+				} catch(IllegalArgumentException e) {
+					// Invalid settingsString
+					model.addAttribute("message", "Invalid settings file. " + e.getMessage());
+					return "error";
+				}
+			} else {
+				settings = new Settings("");
+			}
 
 			// Compare document files
 			try {
@@ -136,6 +148,7 @@ public class NavigationController {
 	public String error500(Model model) {
 		return "500";
 	}
+
 	@Bean(name = "multipartResolver")
 	public CommonsMultipartResolver multipartResolver() {
 		CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver();
