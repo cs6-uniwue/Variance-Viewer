@@ -6,7 +6,7 @@
 	<article>
 		<h1>Error</h1>
 		<hr>
-		<p>Sorry, we where unable to load your files.</p>
+		<p>Sorry, we were unable to load your files.</p>
 		<p>The reason being:</p>
 		<p><c:out value="${message}" /></p>
 		<p><a href="${pageContext.request.contextPath}\">Back</a></p>
