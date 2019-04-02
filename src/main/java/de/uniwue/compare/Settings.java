@@ -50,7 +50,7 @@ public class Settings {
 			final int occurances = countOccurrances(settingsString, tag);
 			if (occurances != 2 && occurances != 0) {
 				throw new IllegalArgumentException(
-						String.format("Tag '%s' has been opened, but not been closed.", tag));
+						String.format("Tag '%s' has been opened, but not closed.", tag));
 			} else if (occurances > 0) {
 				// Check invalid tag position
 				String tagContent = settingsString.substring(settingsString.indexOf(tag),

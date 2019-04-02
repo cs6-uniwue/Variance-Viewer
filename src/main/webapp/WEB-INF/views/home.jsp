@@ -19,5 +19,10 @@
 	</article>
 	<section id="warning"/>
 	<script type="text/javascript" src="resources/js/lib.js"></script>
+	<c:if test="${warning != null}">
+		<script>
+			displayWarning('<c:out value="${warning}"></c:out>',5000);
+		</script>
+	</c:if>
 </t:webpage>
 

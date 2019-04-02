@@ -45,7 +45,7 @@ public class NavigationController {
 
 	@RequestMapping(value = "/home")
 	public String home2(Model model) {
-		return "home";
+		return "redirect:/";
 	}
 
 	@RequestMapping(value = "/view", method = RequestMethod.POST)
@@ -61,8 +61,8 @@ public class NavigationController {
 					settings = new Settings(settingsContent);
 				} catch(IllegalArgumentException e) {
 					// Invalid settingsString
-					model.addAttribute("message", "Invalid settings file. " + e.getMessage());
-					return "error";
+					model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
+					return home(model);
 				}
 			} else {
 				settings = new Settings("");
@@ -121,6 +121,11 @@ public class NavigationController {
 		}
 	}
 
+	@RequestMapping(value = "/view", method = RequestMethod.GET)
+	public String view2(Model model) {
+		return "redirect:/";
+	}
+
 	@RequestMapping(value = "/default", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> defaultSettings(Model model) {
 		final String defaultSettings = StorageManager.getDefault(servletContext);
@@ -136,17 +141,20 @@ public class NavigationController {
 	
 	@RequestMapping(value = "/404")
 	public String error404(Model model) {
-		return "404";
+		model.addAttribute("warning", "Unable to find requested page. Redirected to home.");
+		return home(model);
 	}
 
 	@RequestMapping(value = "/400")
 	public String error400(Model model) {
-		return "400";
+		model.addAttribute("warning", "Unable to understand your request. Redirected to home.");
+		return home(model);
 	}
 	
 	@RequestMapping(value = "/500")
 	public String error500(Model model) {
-		return "500";
+		model.addAttribute("warning", "Sorry the server had an internal error. Redirected to home.");
+		return home(model);
 	}
 
 	@Bean(name = "multipartResolver")

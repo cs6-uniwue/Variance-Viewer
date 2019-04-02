@@ -12,7 +12,7 @@ function validateForm(){
     }
 }
 
-function displayWarning(message){
+function displayWarning(message,time=2000){
     if(!displayingWarning){
         displayingWarning = true;
         warning.innerHTML = message;
@@ -24,6 +24,6 @@ function displayWarning(message){
                 warning.className = orig_classes;
                 displayingWarning = false;
             }, 300);
-        }, 2000);
+        }, time);
     }
 }
