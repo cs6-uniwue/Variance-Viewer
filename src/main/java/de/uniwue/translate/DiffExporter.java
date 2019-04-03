@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
+import de.uniwue.compare.VarianceType;
 import de.uniwue.compare.token.Token;
 import de.uniwue.wa.server.editor.AnnotationWrapper;
 import de.uniwue.wa.server.editor.FeatureWrapper;
@@ -31,11 +32,13 @@ public class DiffExporter {
 	 * @param diffContents
 	 * @return
 	 */
-	public static String convertToAthenJSONString(String originalDocumenat, List<ConnectedContent> diffContents) {
+	public static String convertToAthenJSONString(String originalDocumenat,
+						List<ConnectedContent> diffContents,
+						List<VarianceType> outputVarianceTypes) {
 		TextAnnotationStruct originalDocument = new TextAnnotationStruct(null, originalDocumenat, new ArrayList<>(),
 				new ArrayList<>());
 
-		return convertToAthenJSONString(originalDocument, diffContents);
+		return convertToAthenJSONString(originalDocument, diffContents, outputVarianceTypes);
 	}
 
 	/**
@@ -47,7 +50,7 @@ public class DiffExporter {
 	 */
 	@SuppressWarnings("unchecked")
 	public static String convertToAthenJSONString(TextAnnotationStruct originalDocument,
-			List<ConnectedContent> diffContents) {
+			List<ConnectedContent> diffContents, List<VarianceType> outputVarianceTypes) {
 		String text = originalDocument.getText();
 
 		// ** Annotations **
@@ -61,48 +64,50 @@ public class DiffExporter {
 		int totalDelta = 0;
 		int delta = 0;
 		for (ConnectedContent content : diffContents) {
-			switch (content.getContentType()) {
-			case CHANGE:
-				text = insertRevised(text, content.getRevisedAsText(),
-						(int) (totalDelta + content.getOriginal().peekLast().getEnd()));
-				final int changeId = idCounter++;
-				final int insertId = idCounter++;
-				final int deleteId = idCounter++;
-				final AnnotationWrapper change = convertChange(content, totalDelta, changeId, insertId, deleteId);
-				if (change != null) {
-					final AnnotationWrapper delete = convertDelete(content, totalDelta, deleteId);
-					if (delete != null)
-						annotations.add(delete);
+			if(outputVarianceTypes.contains(content.getVarianceType())) {
+				switch (content.getContentType()) {
+				case CHANGE:
+					text = insertRevised(text, content.getRevisedAsText(),
+							(int) (totalDelta + content.getOriginal().peekLast().getEnd()));
+					final int changeId = idCounter++;
+					final int insertId = idCounter++;
+					final int deleteId = idCounter++;
+					final AnnotationWrapper change = convertChange(content, totalDelta, changeId, insertId, deleteId);
+					if (change != null) {
+						final AnnotationWrapper delete = convertDelete(content, totalDelta, deleteId);
+						if (delete != null)
+							annotations.add(delete);
 
-					annotations.add(change);
-					final AnnotationWrapper insert = convertInsert(content,
-							(totalDelta + content.getOriginal().peekLast().getEnd()), insertId);
+						annotations.add(change);
+						final AnnotationWrapper insert = convertInsert(content,
+								(totalDelta + content.getOriginal().peekLast().getEnd()), insertId);
+						if (insert != null)
+							annotations.add(insert);
+
+						delta = (int) content.getRevisedAsText().length();
+						totalDelta += delta;
+						moveByCurDelta(originalAnnotations, delta, insert.getBegin());
+					}
+					break;
+				case INSERT:
+					text = insertRevised(text, content.getRevisedAsText(), textPosition);
+					final AnnotationWrapper insert = convertInsert(content, textPosition, idCounter++);
 					if (insert != null)
 						annotations.add(insert);
 
 					delta = (int) content.getRevisedAsText().length();
 					totalDelta += delta;
-					moveByCurDelta(originalAnnotations, delta, insert.getBegin());
+					moveByCurDelta(originalAnnotations, delta, textPosition);
+					break;
+				case DELETE:
+					final AnnotationWrapper delete = convertDelete(content, totalDelta, idCounter++);
+					if (delete != null)
+						annotations.add(delete);
+					break;
+				case EQUAL: // Ignore
 				}
-				break;
-			case INSERT:
-				text = insertRevised(text, content.getRevisedAsText(), textPosition);
-				final AnnotationWrapper insert = convertInsert(content, textPosition, idCounter++);
-				if (insert != null)
-					annotations.add(insert);
 
-				delta = (int) content.getRevisedAsText().length();
-				totalDelta += delta;
-				moveByCurDelta(originalAnnotations, delta, textPosition);
-				break;
-			case DELETE:
-				final AnnotationWrapper delete = convertDelete(content, totalDelta, idCounter++);
-				if (delete != null)
-					annotations.add(delete);
-				break;
-			case EQUAL: // Ignore
 			}
-
 			// Move position
 			LinkedList<Token> original = content.getOriginal();
 			if (original.size() > 0)

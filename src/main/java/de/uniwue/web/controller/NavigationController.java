@@ -2,6 +2,7 @@ package de.uniwue.web.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,17 +27,21 @@ import de.uniwue.compare.Annotation;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.Settings;
-import de.uniwue.compare.VarianceType;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
 import de.uniwue.wa.server.editor.TextAnnotationStruct;
 import de.uniwue.web.view.LineCreator;
 import difflib.PatchFailedException;
+import de.uniwue.compare.VarianceType;
 
 @Controller
 public class NavigationController {
 	@Autowired
 	ServletContext servletContext;
+	List<VarianceType> outputVarianceTypes = Arrays.asList(VarianceType.CONTENT, VarianceType.ABBREVIATION,
+															VarianceType.GRAPHEMICS, VarianceType.NONE,
+															VarianceType.PARATEXT, VarianceType.PUNCTUATION,
+															VarianceType.TYPOGRAPHY);
 
 	@RequestMapping(value = "/")
 	public String home(Model model) {
@@ -88,7 +93,7 @@ public class NavigationController {
 							annotations1, annotations2, settings);
 
 					model.addAttribute("format", "tei");
-					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(document1, differences));
+					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
 				} else {
 					// Interpret as plain text
@@ -97,7 +102,7 @@ public class NavigationController {
 					List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
 
 					model.addAttribute("format", "txt");
-					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(content1, differences));
+					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
 				}
 				List<VarianceType> variancetypes = new ArrayList<VarianceType>();
