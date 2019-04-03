@@ -17,7 +17,7 @@
 				<c:if test="${i > 0}">
 					<c:set var="oldHighlight" value="${token.getHighlight().get(i-1)}"/>
 					<c:if test="${highlight[0] > oldHighlight[1]+1}">
-						<span class="${annotation}"><c:out value="${content.substring(oldHighlight[1]+1,highlight[0])}"/></span>
+						<span class="${annotation}"><c:out value="${content.substring(oldHighlight[1],highlight[0])}"/></span>
 					</c:if>
 				</c:if>
 				<span class="highlight ${token.getAnnotationsString()}">
