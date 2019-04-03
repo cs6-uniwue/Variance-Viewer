@@ -3,6 +3,9 @@ package de.uniwue.web.view;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+/**
+ * A Line that is to be displayed in the web view 
+ */
 public class Line {
 	private int lineNr = 0;
 	private LinkedList<Content> tokens;
@@ -35,5 +38,10 @@ public class Line {
 
 	public int getLineNr() {
 		return lineNr;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("[%d:%s]", lineNr, tokens.stream().map((a) -> a.getContent()).reduce("",(a,b) -> a+" "+b));
 	}
 }

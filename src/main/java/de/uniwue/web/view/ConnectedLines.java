@@ -3,6 +3,9 @@ package de.uniwue.web.view;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+/**
+ * Display of connected lines from the original and revised document, inside the web view.
+ */
 public class ConnectedLines {
 	
 	private LinkedList<Line> original, revised;
@@ -38,5 +41,20 @@ public class ConnectedLines {
 
 	public void addRevisedLines(Line... lines) {
 		this.revised.addAll(Arrays.asList(lines));
+	}
+	
+	@Override
+	public String toString() {
+		String content = "";
+		// Hope Java adds zip in the future
+		int origSize = original.size();
+		int revisedSize = revised.size();
+		for(int i=0; i < origSize  || i < revisedSize; i++) {
+			String lineOrig = i < origSize ? original.get(i).toString() : "";
+			String lineRevised = i < revisedSize ? revised.get(i).toString() : "";
+			content += String.format("%s | %s", lineOrig,lineRevised);
+		}
+	
+		return content;
 	}
 }
