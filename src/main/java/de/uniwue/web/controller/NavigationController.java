@@ -70,7 +70,7 @@ public class NavigationController {
 					return home(model);
 				}
 			} else {
-				settings = new Settings("");
+				settings = new Settings(StorageManager.getDefault(servletContext));
 			}
 
 			// Compare document files
