@@ -51,7 +51,9 @@ public class DiffExporter {
 	@SuppressWarnings("unchecked")
 	public static String convertToAthenJSONString(TextAnnotationStruct originalDocument,
 			List<ConnectedContent> diffContents, List<VarianceType> outputVarianceTypes) {
-		String text = originalDocument.getText();
+		// Remove Processing Instructions <?*?>
+		// (Included in Athen TEI String but not in annotations to Athen TEI) 
+		String text = originalDocument.getText().replaceAll("<\\?.*\\?>", "");
 
 		// ** Annotations **
 		List<AnnotationWrapper> originalAnnotations = originalDocument.getAnnotations();

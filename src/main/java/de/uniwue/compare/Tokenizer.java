@@ -74,6 +74,9 @@ public class Tokenizer {
 	 * @return list of all tokens
 	 */
 	public static List<Token> tokenize(String content, List<Annotation> annotations, List<String> contentTags) {
+		// Remove Processing Instructions <?*?>
+		// (Included in Athen TEI String but not in annotations to Athen TEI) 
+		content = content.replaceAll("<\\?.*\\?>", "");
 		List<Annotation> tokenizable = annotations.stream().filter(
 				a -> a.getFeatures().containsKey("TagName") && contentTags.contains(a.getFeatures().get("TagName")))
 				.collect(Collectors.toList());
@@ -139,7 +142,7 @@ public class Tokenizer {
 				}
 			}
 		}
-
+		
 		return tokens;
 	}
 }
