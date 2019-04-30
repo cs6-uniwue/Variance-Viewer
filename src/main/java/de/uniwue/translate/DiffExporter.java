@@ -51,9 +51,7 @@ public class DiffExporter {
 	@SuppressWarnings("unchecked")
 	public static String convertToAthenJSONString(TextAnnotationStruct originalDocument,
 			List<ConnectedContent> diffContents, List<VarianceType> outputVarianceTypes) {
-		// Remove Processing Instructions <?*?>
-		// (Included in Athen TEI String but not in annotations to Athen TEI) 
-		String text = originalDocument.getText().replaceAll("<\\?.*\\?>", "");
+		String text = originalDocument.getText();
 
 		// ** Annotations **
 		List<AnnotationWrapper> originalAnnotations = originalDocument.getAnnotations();
@@ -69,6 +67,7 @@ public class DiffExporter {
 			if(outputVarianceTypes.contains(content.getVarianceType())) {
 				switch (content.getContentType()) {
 				case CHANGE:
+					//System.out.println(content.getRevisedAsText());
 					text = insertRevised(text, content.getRevisedAsText(),
 							(int) (totalDelta + content.getOriginal().peekLast().getEnd()));
 					final int changeId = idCounter++;
@@ -92,6 +91,8 @@ public class DiffExporter {
 					}
 					break;
 				case INSERT:
+
+					//System.out.println(content.getRevisedAsText());
 					text = insertRevised(text, content.getRevisedAsText(), textPosition);
 					final AnnotationWrapper insert = convertInsert(content, textPosition, idCounter++);
 					if (insert != null)

@@ -1,6 +1,9 @@
 package de.uniwue.web.controller;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,21 +30,21 @@ import de.uniwue.compare.Annotation;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.Settings;
+import de.uniwue.compare.VarianceType;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
+import de.uniwue.translate.XMLCleaner;
 import de.uniwue.wa.server.editor.TextAnnotationStruct;
 import de.uniwue.web.view.LineCreator;
 import difflib.PatchFailedException;
-import de.uniwue.compare.VarianceType;
 
 @Controller
 public class NavigationController {
 	@Autowired
 	ServletContext servletContext;
 	List<VarianceType> outputVarianceTypes = Arrays.asList(VarianceType.CONTENT, VarianceType.ABBREVIATION,
-															VarianceType.GRAPHEMICS, VarianceType.NONE,
-															VarianceType.PARATEXT, VarianceType.PUNCTUATION,
-															VarianceType.TYPOGRAPHY);
+			VarianceType.GRAPHEMICS, VarianceType.NONE, VarianceType.PARATEXT, VarianceType.PUNCTUATION,
+			VarianceType.TYPOGRAPHY);
 
 	@RequestMapping(value = "/")
 	public String home(Model model) {
@@ -60,11 +63,11 @@ public class NavigationController {
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
 			Settings settings;
-			if(!settingsFile.isEmpty()) {
+			if (!settingsFile.isEmpty()) {
 				try {
 					String settingsContent = StorageManager.getSettings(settingsFile, servletContext);
 					settings = new Settings(settingsContent);
-				} catch(IllegalArgumentException e) {
+				} catch (IllegalArgumentException e) {
 					// Invalid settingsString
 					model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
 					return home(model);
@@ -77,23 +80,37 @@ public class NavigationController {
 			try {
 				String file1Type = file1.getContentType();
 				String file2Type = file2.getContentType();
+				String tei1Content = "";
+				String tei2Content = "";
+
+				if (file1Type.equals("text/xml") && file2Type.equals("text/xml")) {
+					tei1Content = XMLCleaner.clean(new String(file1.getBytes(), "UTF-8"));
+					tei2Content = XMLCleaner.clean(new String(file2.getBytes(), "UTF-8"));
+				}
 
 				boolean filesAreTEI = file1Type.equals("text/xml") && file2Type.equals("text/xml")
-						&& TEIToAthenConverter.isTEI(file1.getInputStream())
-						&& TEIToAthenConverter.isTEI(file2.getInputStream());
+						&& TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei1Content.getBytes()))
+						&& TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei2Content.getBytes()));
 
 				if (filesAreTEI) {
-					TextAnnotationStruct document1 = TEIToAthenConverter.convertTEIToAthen(file1.getInputStream());
-					TextAnnotationStruct document2 = TEIToAthenConverter.convertTEIToAthen(file2.getInputStream());
+					// Convert to Athen
+					TextAnnotationStruct document1 = TEIToAthenConverter
+							.convertTEIToAthen(new ByteArrayInputStream(tei1Content.getBytes()));
+					TextAnnotationStruct document2 = TEIToAthenConverter
+							.convertTEIToAthen(new ByteArrayInputStream(tei2Content.getBytes()));
+					
 					Collection<Annotation> annotations1 = document1.getAnnotations().stream()
 							.map(a -> new Annotation(a)).collect(Collectors.toList());
 					Collection<Annotation> annotations2 = document2.getAnnotations().stream()
 							.map(a -> new Annotation(a)).collect(Collectors.toList());
+
+					// Find differences
 					List<ConnectedContent> differences = Diff.compareXML(document1.getText(), document2.getText(),
 							annotations1, annotations2, settings);
 
 					model.addAttribute("format", "tei");
-					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
+					model.addAttribute("exportJSON",
+							DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
 				} else {
 					// Interpret as plain text
@@ -102,7 +119,8 @@ public class NavigationController {
 					List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
 
 					model.addAttribute("format", "txt");
-					model.addAttribute("exportJSON", DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
+					model.addAttribute("exportJSON",
+							DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
 				}
 				List<VarianceType> variancetypes = new ArrayList<VarianceType>();
@@ -143,7 +161,7 @@ public class NavigationController {
 
 		return new ResponseEntity<byte[]>(settingsBytes, headers, HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(value = "/404")
 	public String error404(Model model) {
 		model.addAttribute("warning", "Unable to find requested page. Redirected to home.");
@@ -155,7 +173,7 @@ public class NavigationController {
 		model.addAttribute("warning", "Unable to understand your request. Redirected to home.");
 		return home(model);
 	}
-	
+
 	@RequestMapping(value = "/500")
 	public String error500(Model model) {
 		model.addAttribute("warning", "Sorry the server had an internal error. Redirected to home.");

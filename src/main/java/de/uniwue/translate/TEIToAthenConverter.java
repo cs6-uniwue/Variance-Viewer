@@ -24,7 +24,7 @@ public class TEIToAthenConverter {
 		// Create UIMA CAS from TEI xml file InputStream
 		CAS cas;
 		try {
-			cas = new TEIReader().readDocument(is, false, null).getFirst();
+			cas = new TEIReader().readDocument(XMLCleaner.clean(is), false, null).getFirst();
 		} catch (ResourceInitializationException e) {
 			throw new IllegalArgumentException(
 					"Unsupported filetype, can't be converted to Athen. InputStream must be derived from a TEI xml file.");
@@ -41,7 +41,7 @@ public class TEIToAthenConverter {
 	 */
 	public static boolean isTEI(InputStream is) {
 		try {
-			EKnownXMLFormat type = XMLFormatDetector.detectFormat(new TEIReader().readDocument(is, false, null).getFirst());
+			EKnownXMLFormat type = XMLFormatDetector.detectFormat(new TEIReader().readDocument(XMLCleaner.clean(is), false, null).getFirst());
 			if(type != EKnownXMLFormat.PAGE_XML)
 				return true;
 			else
