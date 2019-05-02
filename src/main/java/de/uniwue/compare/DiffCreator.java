@@ -22,16 +22,11 @@ public class DiffCreator {
 	 * Patch a diff with the original two lists of tokens to combine them into
 	 * connected content (Adds equal parts not present in the diff etc.)
 	 * 
-	 * @param originalLines
-	 *            Lines form the first document
-	 * @param revisedLines
-	 *            Lines from the second document
-	 * @param diffs
-	 *            Diffs between the two documents
-	 * @param diffAnnotationsInEqual
-	 *            Search more annotations in equal portions
-	 * @param normalizerStorage
-	 *            Setting for normalizations
+	 * @param originalLines          Lines form the first document
+	 * @param revisedLines           Lines from the second document
+	 * @param diffs                  Diffs between the two documents
+	 * @param diffAnnotationsInEqual Search more annotations in equal portions
+	 * @param normalizerStorage      Setting for normalizations
 	 * @return
 	 */
 	public static List<ConnectedContent> patch(List<? extends Token> originalLines, List<? extends Token> revisedLines,
@@ -132,25 +127,70 @@ public class DiffCreator {
 						for (int i = 0; i < equalTokensOriginal.size(); i++) {
 							Token originalTest = equalTokensOriginal.get(i);
 							Token revisedTest = equalTokensRevised.get(i);
-							VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest,
-									ContentType.CHANGE, normalizerStorage);
-							if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-									&& !varianceType.equals(VarianceType.ABBREVIATION))
-								highlightTokens(originalTest, revisedTest);
-							else {
-								originalTest.highlightEverything();
-								revisedTest.highlightEverything();
-							}
 
-							// Add to last content (if of same type) or create new content
-							if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-									|| !curContent.getVarianceType().equals(varianceType)) {
-								curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
-								curContent.setVarianceType(varianceType);
-								content.add(curContent);
+							if (originalTest.getContent().length() > 0 && revisedTest.getContent().length() > 0) {
+								// Change
+								VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest,
+										ContentType.CHANGE, normalizerStorage);
+								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
+										&& !varianceType.equals(VarianceType.ABBREVIATION))
+									highlightTokens(originalTest, revisedTest);
+								else {
+									originalTest.highlightEverything();
+									revisedTest.highlightEverything();
+								}
+
+								// Add to last content (if of same type) or create new content
+								if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
+										|| !curContent.getVarianceType().equals(varianceType)) {
+									curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
+									curContent.setVarianceType(varianceType);
+									content.add(curContent);
+								} else {
+									curContent.addOriginal(originalTest);
+									curContent.addRevised(revisedTest);
+								}
 							} else {
-								curContent.addOriginal(originalTest);
-								curContent.addRevised(revisedTest);
+								// Delete or Insert
+								VarianceType varianceType = null;
+								if (originalTest.getContent().length() > 0) {
+									varianceType = getVarianceTypeSingle(originalTest, ContentType.INSERT,
+											normalizerStorage);
+								} else if (revisedTest.getContent().length() > 0) {
+									varianceType = getVarianceTypeSingle(revisedTest, ContentType.DELETE,
+											normalizerStorage);
+								}
+
+								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
+										&& !varianceType.equals(VarianceType.ABBREVIATION))
+									highlightTokens(originalTest, revisedTest);
+								else {
+									originalTest.highlightEverything();
+									revisedTest.highlightEverything();
+								}
+
+								// Add to last content (if of same type) or create new content
+								if (originalTest.getContent().length() > 0) {
+									if (curContent == null || !curContent.getContentType().equals(ContentType.INSERT)
+											|| !curContent.getVarianceType().equals(varianceType)) {
+										curContent = new ConnectedContent(ContentType.INSERT);
+										curContent.addOriginal(originalTest);
+										curContent.setVarianceType(varianceType);
+										content.add(curContent);
+									} else {
+										curContent.addOriginal(originalTest);
+									}
+								} else if (revisedTest.getContent().length() > 0) {
+									if (curContent == null || !curContent.getContentType().equals(ContentType.DELETE)
+											|| !curContent.getVarianceType().equals(varianceType)) {
+										curContent = new ConnectedContent(ContentType.DELETE);
+										curContent.addOriginal(revisedTest);
+										curContent.setVarianceType(varianceType);
+										content.add(curContent);
+									} else {
+										curContent.addOriginal(originalTest);
+									}
+								}
 							}
 						}
 					}
@@ -279,14 +319,10 @@ public class DiffCreator {
 	/**
 	 * Process chunks of insert changes into ConnectedContents
 	 * 
-	 * @param revised
-	 *            Inserted tokens
-	 * @param curContent
-	 *            Content that is currently on head
-	 * @param allContent
-	 *            List of all Connected Contents
-	 * @param normalizerStorage
-	 *            Normalize settings
+	 * @param revised           Inserted tokens
+	 * @param curContent        Content that is currently on head
+	 * @param allContent        List of all Connected Contents
+	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
 	private static ConnectedContent insert(Chunk<? extends Token> revised, ConnectedContent curContent,
@@ -298,14 +334,10 @@ public class DiffCreator {
 	/**
 	 * Process chunks of delete changes into ConnectedContents
 	 * 
-	 * @param original
-	 *            Deleted tokens
-	 * @param curContent
-	 *            Content that is currently on head
-	 * @param allContent
-	 *            List of all Connected Contents
-	 * @param normalizerStorage
-	 *            Normalize settings
+	 * @param original          Deleted tokens
+	 * @param curContent        Content that is currently on head
+	 * @param allContent        List of all Connected Contents
+	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
 	private static ConnectedContent delete(Chunk<? extends Token> original, ConnectedContent curContent,
@@ -317,14 +349,10 @@ public class DiffCreator {
 	/**
 	 * Process list of insert changes into ConnectedContents
 	 * 
-	 * @param revised
-	 *            Inserted tokens
-	 * @param curContent
-	 *            Content that is currently on head
-	 * @param allContent
-	 *            List of all Connected Contents
-	 * @param normalizerStorage
-	 *            Normalize settings
+	 * @param revised           Inserted tokens
+	 * @param curContent        Content that is currently on head
+	 * @param allContent        List of all Connected Contents
+	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
 	private static ConnectedContent insert(List<? extends Token> revised, ConnectedContent curContent,
@@ -335,14 +363,10 @@ public class DiffCreator {
 	/**
 	 * Process list of delete changes into ConnectedContents
 	 * 
-	 * @param original
-	 *            Deleted tokens
-	 * @param curContent
-	 *            Content that is currently on head
-	 * @param allContent
-	 *            List of all Connected Contents
-	 * @param normalizerStorage
-	 *            Normalize settings
+	 * @param original          Deleted tokens
+	 * @param curContent        Content that is currently on head
+	 * @param allContent        List of all Connected Contents
+	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
 	private static ConnectedContent delete(List<? extends Token> original, ConnectedContent curContent,
@@ -354,16 +378,12 @@ public class DiffCreator {
 	 * Helper function to process a list of tokens of either insert or delete
 	 * changes into ConnectedContent.
 	 * 
-	 * @param tokens
-	 *            List of tokens
-	 * @param curContent
-	 *            Content that is currently on head
-	 * @param allContent
-	 *            List of all Connected Contents
-	 * @param normalizerStorage
-	 *            Normalize settings
-	 * @param curContentType
-	 *            Content Type of the list of tokens (either INSERT or DELETE)
+	 * @param tokens            List of tokens
+	 * @param curContent        Content that is currently on head
+	 * @param allContent        List of all Connected Contents
+	 * @param normalizerStorage Normalize settings
+	 * @param curContentType    Content Type of the list of tokens (either INSERT or
+	 *                          DELETE)
 	 * @return Connected content
 	 */
 	private static ConnectedContent prosessInsertAndDelete(List<? extends Token> tokens, ConnectedContent curContent,
@@ -395,10 +415,8 @@ public class DiffCreator {
 	 * 
 	 * E.g. "Test" "Text" -> "Te[s,x]t" Highlight char 2 (s/x)
 	 * 
-	 * @param token1
-	 *            Token one to highlight
-	 * @param token2
-	 *            Token two to highlight
+	 * @param token1 Token one to highlight
+	 * @param token2 Token two to highlight
 	 */
 	private static void highlightTokens(Token token1, Token token2) {
 		List<long[]> highlightToken1 = new LinkedList<>();
@@ -428,14 +446,11 @@ public class DiffCreator {
 	 * 
 	 * Separation -> Punctuation -> (else) Content
 	 * 
-	 * @param content
-	 *            Token to classify
-	 * @param type
-	 *            ContentType of the variance type (preferably INSERT or DELETE.
-	 *            CHANGE will be handled like INSERT/DELETE and EQUAL will not be
-	 *            set to VarianceType NONE)
-	 * @param normalizerStorage
-	 *            Normalize settings and rules
+	 * @param content           Token to classify
+	 * @param type              ContentType of the variance type (preferably INSERT
+	 *                          or DELETE. CHANGE will be handled like INSERT/DELETE
+	 *                          and EQUAL will not be set to VarianceType NONE)
+	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the token
 	 */
 	private static VarianceType getVarianceTypeSingle(Token content, ContentType type, Settings normalizerStorage) {
@@ -458,14 +473,10 @@ public class DiffCreator {
 	 * Equal -> Separation -> Typography -> Punctuation -> Graphemics ->
 	 * Abbreviations -> (else) Content
 	 * 
-	 * @param original
-	 *            Token from the original text
-	 * @param revised
-	 *            Token from the revised text
-	 * @param type
-	 *            Content type (Equal, Insert, Delete, Change)
-	 * @param normalizerStorage
-	 *            Normalize settings and rules
+	 * @param original          Token from the original text
+	 * @param revised           Token from the revised text
+	 * @param type              Content type (Equal, Insert, Delete, Change)
+	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the tuple of tokens
 	 */
 	private static VarianceType getVarianceTypeTouple(Token original, Token revised, ContentType type,
@@ -507,10 +518,8 @@ public class DiffCreator {
 	 * can both be normalized to "Test", which helps to identify underlying variance
 	 * types that can be classified. (Punctuation in this case)
 	 * 
-	 * @param list
-	 *            list of tokens to normalize
-	 * @param normalizerStorage
-	 *            normalize settings (Config file)
+	 * @param list              list of tokens to normalize
+	 * @param normalizerStorage normalize settings (Config file)
 	 * @return List of normalized tokens
 	 */
 	private static LinkedList<Token> normalize(List<Token> list, Settings normalizerStorage) {
@@ -528,10 +537,8 @@ public class DiffCreator {
 	 * can both be normalized to "Test", which helps to identify underlying variance
 	 * types that can be classified. (Punctuation in this case)
 	 * 
-	 * @param token
-	 *            token to normalize
-	 * @param normalizerStorage
-	 *            normalize settings (Config file)
+	 * @param token             token to normalize
+	 * @param normalizerStorage normalize settings (Config file)
 	 * @return normalized token
 	 */
 	private static String normalize(String token, Settings normalizerStorage) {
@@ -546,8 +553,7 @@ public class DiffCreator {
 	 * normalized to "Test", which helps to identify a line separation variance
 	 * type.
 	 * 
-	 * @param token
-	 *            token to normalize
+	 * @param token token to normalize
 	 * @return normalized token
 	 */
 	private static String normalizeLineSEPARATION(String token) {
@@ -559,10 +565,9 @@ public class DiffCreator {
 	 * normalized to "Test" (if given "." as punctuation rule), which helps to
 	 * identify a punctuation variance type.
 	 * 
-	 * @param token
-	 *            token to normalize
-	 * @param normalizerStorage
-	 *            normalize settings with all punctuations (Config file)
+	 * @param token             token to normalize
+	 * @param normalizerStorage normalize settings with all punctuations (Config
+	 *                          file)
 	 * @return normalized token
 	 */
 	private static String removePunctuation(String token, Settings normalizerStorage) {
@@ -580,10 +585,9 @@ public class DiffCreator {
 	 * be normalized to "TestAe" (if given the graphemic rule "Ä->Ae"), which helps
 	 * to identify a graphemic variance type.
 	 * 
-	 * @param token
-	 *            token to normalize
-	 * @param normalizerStorage
-	 *            normalize settings with all graphemic rules (Config file)
+	 * @param token             token to normalize
+	 * @param normalizerStorage normalize settings with all graphemic rules (Config
+	 *                          file)
 	 * @return normalized token
 	 */
 	private static String normalizeGraphemics(String token, Settings normalizerStorage) {
@@ -600,10 +604,9 @@ public class DiffCreator {
 	 * "TestExample" can be normalized to "TestExample" (if given the abbreviation
 	 * rule "Ex->Example"), which helps to identify a abbreviation variance type.
 	 * 
-	 * @param token
-	 *            token to normalize
-	 * @param normalizerStorage
-	 *            normalize settings with all abbreviation rules (Config file)
+	 * @param token             token to normalize
+	 * @param normalizerStorage normalize settings with all abbreviation rules
+	 *                          (Config file)
 	 * @return normalized token
 	 */
 	private static String normalizeAbbreviations(String token, Settings normalizerStorage) {
