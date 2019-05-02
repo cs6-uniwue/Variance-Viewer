@@ -156,7 +156,7 @@ document.querySelector("#help-close").addEventListener("click", () => closeHelp(
 document.querySelector("#download-save").addEventListener("click", () => download());
 document.querySelectorAll(".openDownload").forEach((open) => open.addEventListener("click", () => openDownload()));
 document.querySelectorAll(".openHelp").forEach((open) => open.addEventListener("click", () => openHelp()));
-blur.addEventListener("click", () => closeDownload());
+blur.addEventListener("click", () => {closeDownload(); closeHelp()});
 
 
 /*** Converter ***/
