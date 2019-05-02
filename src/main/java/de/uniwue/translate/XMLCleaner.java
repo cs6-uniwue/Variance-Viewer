@@ -18,7 +18,7 @@ public class XMLCleaner {
 		try (BufferedReader bufferedReader = new BufferedReader(
 				new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 			while ((line = bufferedReader.readLine()) != null) {
-				stringBuilder.append(line);
+				stringBuilder.append(line+"\n");
 			}
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
