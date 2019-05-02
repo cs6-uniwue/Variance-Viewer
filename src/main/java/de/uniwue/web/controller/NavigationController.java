@@ -1,9 +1,7 @@
 package de.uniwue.web.controller;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,6 +27,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import de.uniwue.compare.Annotation;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
+import de.uniwue.compare.DocumentType;
 import de.uniwue.compare.Settings;
 import de.uniwue.compare.VarianceType;
 import de.uniwue.translate.DiffExporter;
@@ -82,23 +81,31 @@ public class NavigationController {
 				String file2Type = file2.getContentType();
 				String tei1Content = "";
 				String tei2Content = "";
+				// Base document type
+				DocumentType document1Type = file1Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
+				DocumentType document2Type = file2Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
 
-				if (file1Type.equals("text/xml") && file2Type.equals("text/xml")) {
+				// Check for TEI document type
+				if (document1Type.equals(DocumentType.XML)) {
 					tei1Content = XMLCleaner.clean(new String(file1.getBytes(), "UTF-8"));
+					document1Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei1Content.getBytes()))
+							? DocumentType.TEI
+							: DocumentType.XML;
+				}
+				if (document2Type.equals(DocumentType.XML)) {
 					tei2Content = XMLCleaner.clean(new String(file2.getBytes(), "UTF-8"));
+					document2Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei2Content.getBytes()))
+							? DocumentType.TEI
+							: DocumentType.XML;
 				}
 
-				boolean filesAreTEI = file1Type.equals("text/xml") && file2Type.equals("text/xml")
-						&& TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei1Content.getBytes()))
-						&& TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei2Content.getBytes()));
-
-				if (filesAreTEI) {
+				if (document1Type.equals(DocumentType.TEI) && document2Type.equals(DocumentType.TEI)) {
 					// Convert to Athen
 					TextAnnotationStruct document1 = TEIToAthenConverter
 							.convertTEIToAthen(new ByteArrayInputStream(tei1Content.getBytes()));
 					TextAnnotationStruct document2 = TEIToAthenConverter
 							.convertTEIToAthen(new ByteArrayInputStream(tei2Content.getBytes()));
-					
+
 					Collection<Annotation> annotations1 = document1.getAnnotations().stream()
 							.map(a -> new Annotation(a)).collect(Collectors.toList());
 					Collection<Annotation> annotations2 = document2.getAnnotations().stream()
@@ -131,6 +138,8 @@ public class NavigationController {
 				model.addAttribute("variancetypes", variancetypes);
 				model.addAttribute("document1name", file1.getOriginalFilename());
 				model.addAttribute("document2name", file2.getOriginalFilename());
+				model.addAttribute("document1type", document1Type);
+				model.addAttribute("document2type", document2Type);
 				model.addAttribute("externalCSS", settings.getExternalCss());
 			} catch (IOException e1) {
 				return "redirect:/404";

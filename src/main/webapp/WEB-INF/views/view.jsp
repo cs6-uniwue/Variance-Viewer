@@ -27,9 +27,15 @@
 	<article id="compare-container">
 		<p class="title">
 			<c:out value="${document1name}" />
+			<a href="#" class="documenttype openHelp">
+				(<c:out value="${document1type}" />)
+			</a>
 		</p>
 		<p class="title">
 			<c:out value="${document2name}" />
+			<a href="#" class="documenttype openHelp">
+				(<c:out value="${document2type}" />)
+			</a>
 		</p>
 		<div class="pagetop"></div>
 		<div class="pagetop"></div>
@@ -100,10 +106,28 @@
 				</ul> 
 			</section>
 		</form>
-		<section id="browser-warning">Your browser does not completely support this format.<br> You may need to manually set the save name and enable "Print&nbspBackground&nbspColor" in your print options.</section>
+		<section id="browser-warning" class="warning">Your browser does not completely support this format.<br> You may need to manually set the save name and enable "Print&nbspBackground&nbspColor" in your print options.</section>
+		<section id="format-warning" class="warning">The compared documents are not both of type TEI.<br>It is possible that the resulting TEI may not be valid, since it can contain invalid symbols inside the text blocks e.g. "&lt;", "&gt;".</section>
 		<section id="download-confirm">
 			<button id="download-cancel" type="button">Cancel</button>
 			<button id="download-save" type="button">Save</button>
+		</section>
+	</article>
+	<article id="help">
+		<section id="help-header">
+			Document type help
+			<hr>
+		</section>
+		<section id="help-body">
+		The Variance Viewer is build to compare the content of TEI documents or plain text documents.
+		</br>
+		Comparing two TEI documents will thereby read and interpret the documents, 
+		with all "rend" attributes being interpreted as typographical changes in a TEI document.
+		</br>
+		The comparison will, if one or both documents are not of type TEI, compare both documents as plain text documents. 
+		</section>
+		<section id="help-confirm">
+			<button id="help-close" type="button">Close</button>
 		</section>
 	</article>
 	<script type="text/javascript">

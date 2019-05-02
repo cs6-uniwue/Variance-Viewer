@@ -379,7 +379,7 @@ footer{
 .openDownload {
     float: left;
 }
-#download {
+#download,#help {
     display:none;
     position: fixed;
     left: 50%;
@@ -395,11 +395,16 @@ footer{
     hr{
         width: 100%;
     }
-    #download-header {
+    #download-header, #help-header {
         margin-top: 0px;
         margin-bottom: 15px;
         font-weight: 100;
         font-size: large;
+    }
+    #help-body {
+        br{
+            margin: 15px;
+        }
     }
 
     #download-settings {
@@ -417,14 +422,15 @@ footer{
         }
     }
     
-    #download-confirm {
+    #download-confirm, #help-confirm {
         text-align: right; 
         margin-top: 15px;
     }
-    #browser-warning{
+    .warning{
         color: red;
         font-size: 80%;
         display: none;
+        margin:5px;
     }
 }
 

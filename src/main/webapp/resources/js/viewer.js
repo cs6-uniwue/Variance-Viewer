@@ -60,18 +60,30 @@ remove.forEach((ds) => ds.style.display = "none");
 
 /*** Download ***/
 let downloadSection = document.querySelector("#download");
+let helpSection = document.querySelector("#help");
 let blur = document.querySelector("#blur");
 let fileNameSelect = document.querySelector("#download-filename");
 let fileTypeSelect = document.querySelector("#download-filetype");
 let browserWarning = document.querySelector("#browser-warning");
+let formatWarning = document.querySelector("#format-warning");
 let downloadSwitches = document.querySelector("#download-switches");
 
 function openDownload() {
+    if (!(format === "tei"))
+        formatWarning.style.display = "block";
     downloadSection.style.display = "block";
     blur.style.display = "block";
 }
 function closeDownload() {
     downloadSection.style.display = "none";
+    blur.style.display = "none";
+}
+function openHelp() {
+    helpSection.style.display = "block";
+    blur.style.display = "block";
+}
+function closeHelp() {
+    helpSection.style.display = "none";
     blur.style.display = "none";
 }
 function download() {
@@ -123,20 +135,27 @@ fileTypeSelect.addEventListener("change", () => {
     let filetype = fileTypeSelect.value;
     let usesChromium = !!window.chrome;
 
+    downloadSwitches.style.display = "none";
+    browserWarning.style.display = "none";
+    formatWarning.style.display = "none";
     switch (filetype) {
         case "pdf":
             downloadSwitches.style.display = "block";
             if (!usesChromium)
                 browserWarning.style.display = "block";
             break;
+        case "tei":
+            if (!(format === "tei"))
+                formatWarning.style.display = "block";
+            break;
         default:
-            downloadSwitches.style.display = "none";
-            browserWarning.style.display = "none";
     }
 });
 document.querySelector("#download-cancel").addEventListener("click", () => closeDownload());
+document.querySelector("#help-close").addEventListener("click", () => closeHelp());
 document.querySelector("#download-save").addEventListener("click", () => download());
 document.querySelectorAll(".openDownload").forEach((open) => open.addEventListener("click", () => openDownload()));
+document.querySelectorAll(".openHelp").forEach((open) => open.addEventListener("click", () => openHelp()));
 blur.addEventListener("click", () => closeDownload());
 
 
@@ -155,12 +174,14 @@ function getTEIconformJSON() {
         switch (a.type) {
             case GROUPID + ".type.INSERT":
                 a.type = "rdg";
+                a.features.TagName = "rdg";
+                
                 const insertParent = getParentOrNull(a.jsonId);
 
                 if (insertParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"] } });
-                    newAnnotations.push({ "type": "lem", "begin": a.begin, "end": a.begin, "features": { "parent": { "jsonId": newParentId } } });
+                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"], "TagName":"app" } });
+                    newAnnotations.push({ "type": "lem", "begin": a.begin, "end": a.begin, "features": { "parent": { "jsonId": newParentId }, "TagName":"lem" } });
                     a.features.parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -177,12 +198,13 @@ function getTEIconformJSON() {
                 break;
             case GROUPID + ".type.DELETE":
                 a.type = "lem";
+                a.features.TagName = "lem";
                 const deleteParent = getParentOrNull(a.jsonId);
 
                 if (deleteParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "rdg", "begin": a.end, "end": a.end, "features": { "parent": { "jsonId": newParentId } } });
-                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"] } });
+                    newAnnotations.push({ "type": "rdg", "begin": a.end, "end": a.end, "features": { "parent": { "jsonId": newParentId }, "TagName":"rdg" } });
+                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"] }, "TagName":"app" });
                     a.features.parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -199,6 +221,7 @@ function getTEIconformJSON() {
                 break;
             case GROUPID + ".type.CHANGE":
                 a.type = "app";
+                a.features.TagName = "app";
                 delete a.features["insert"];
                 delete a.features["delete"];
 

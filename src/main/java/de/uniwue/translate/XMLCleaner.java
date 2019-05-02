@@ -51,6 +51,10 @@ public class XMLCleaner {
 		// Reattach header
 		cleanXML = header + cleanXML;
 
+		// Fuzzy cleaning with error correction
+		cleanXML = cleanXML.replaceAll("<<", "<");
+		cleanXML = cleanXML.replaceAll(">>", ">");
+
 		return cleanXML;
 	}
 
