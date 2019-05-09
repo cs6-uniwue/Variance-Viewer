@@ -181,11 +181,11 @@ function getTEIconformJSON() {
                 if (insertParent == null) {
                     const newParentId = jsonID++;
                     newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"], "TagName":"app" } });
-                    newAnnotations.push({ "type": "lem", "begin": a.begin, "end": a.begin, "features": { "parent": { "jsonId": newParentId }, "TagName":"lem" } });
-                    a.features.parent = { "jsonId": newParentId };
+                    newAnnotations.push({ "type": "lem", "begin": a.begin, "end": a.begin, "features": { "Parent": { "jsonId": newParentId }, "TagName":"lem" } });
+                    a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
-                    a.features.parent = { "jsonId": insertParent.jsonId };
+                    a.features.Parent = { "jsonId": insertParent.jsonId };
                 }
                 delete a.features["variance-type"];
                 delete a.features["annotations"];
@@ -193,7 +193,7 @@ function getTEIconformJSON() {
                 directIncluding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 if(directIncluding.length > 0){
                     let parent = a;
-                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.parent = {jsonId:parent.jsonId}; parent = s}})
+                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.Parent = {jsonId:parent.jsonId}; parent = s}})
                 }
                 break;
             case GROUPID + ".type.DELETE":
@@ -203,12 +203,12 @@ function getTEIconformJSON() {
 
                 if (deleteParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "rdg", "begin": a.end, "end": a.end, "features": { "parent": { "jsonId": newParentId }, "TagName":"rdg" } });
+                    newAnnotations.push({ "type": "rdg", "begin": a.end, "end": a.end, "features": { "Parent": { "jsonId": newParentId }, "TagName":"rdg" } });
                     newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"] }, "TagName":"app" });
-                    a.features.parent = { "jsonId": newParentId };
+                    a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
-                    a.features.parent = { "jsonId": deleteParent.jsonId };
+                    a.features.Parent = { "jsonId": deleteParent.jsonId };
                 }
                 delete a.features["variance-type"];
                 delete a.features["annotations"];
@@ -216,7 +216,7 @@ function getTEIconformJSON() {
                 directIncluding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 if(directIncluding.length > 0){
                     let parent = a;
-                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.parent = {jsonId:parent.jsonId}; parent = s}})
+                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.Parent = {jsonId:parent.jsonId}; parent = s}})
                 }
                 break;
             case GROUPID + ".type.CHANGE":
@@ -230,7 +230,7 @@ function getTEIconformJSON() {
                 delete a.features["variance-type"];
                 if(directSurrounding.length > 0){
                     let child = a;
-                    directSurrounding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)){child.features.parent = {jsonId:s.jsonId}; child = s; }})
+                    directSurrounding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)){child.features.Parent = {jsonId:s.jsonId}; child = s; }})
                 }
                 break;
             default:
@@ -240,7 +240,7 @@ function getTEIconformJSON() {
     teiJson.annotations = teiJson.annotations.filter(a => !a.type.includes(GROUPID));
 
     teiJson.annotations = teiJson.annotations.concat(newAnnotations);
-    const parentFeature = {name:"parent",range:"RANGE_ANNOTATION"};
+    const parentFeature = {name:"Parent",range:"RANGE_ANNOTATION"};
     teiJson.types.forEach(t => {
         switch (t.name) {
             case GROUPID + ".type.INSERT":
