@@ -53,8 +53,8 @@ public class Diff {
 
 	public static List<ConnectedContent> comparePlainText(String content1, String content2, Settings normalizerStorage)
 			throws PatchFailedException {
-		List<Token> tokens1 = Tokenizer.tokenize(content1);
-		List<Token> tokens2 = Tokenizer.tokenize(content2);
+		List<Token> tokens1 = Tokenizer.tokenize(content1,"plain");
+		List<Token> tokens2 = Tokenizer.tokenize(content2,"plain");
 
 		// Compute diff. Get the Patch object.
 		Patch<Token> patch = DiffUtils.diff(tokens1, tokens2);

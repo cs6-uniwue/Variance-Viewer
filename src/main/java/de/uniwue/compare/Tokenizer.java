@@ -20,7 +20,7 @@ public class Tokenizer {
 	 *            document sting content
 	 * @return list of all tokens
 	 */
-	public static List<Token> tokenize(String content) {
+	public static List<Token> tokenize(String content, String contentTag) {
 		final List<Token> tokens = new ArrayList<Token>();
 
 		if (content.length() > 0) {
@@ -56,7 +56,7 @@ public class Tokenizer {
 				if (tokenText.equals(" ")) // Spaces
 					pointer++;
 				else
-					tokens.add(new Token(pointer, pointer += tokenText.length(), tokenText));
+					tokens.add(new Token(pointer, pointer += tokenText.length(), tokenText, contentTag));
 			}
 		}
 		return tokens;
@@ -84,7 +84,7 @@ public class Tokenizer {
 			final int begin = annotation.getBegin();
 			final int end = annotation.getEnd();
 
-			List<Token> curTokens = tokenize(content.substring(begin, end));
+			List<Token> curTokens = tokenize(content.substring(begin, end),annotation.getFeatures().get("TagName"));
 			curTokens.forEach(t -> t.moveDelta(begin));
 			tokens.addAll(curTokens);
 		}
@@ -110,8 +110,21 @@ public class Tokenizer {
 				final int annotationBegin = annotation.getBegin();
 				final int annotationEnd = annotation.getEnd();
 				if (annotationBegin == annotationEnd) {
-					// Does not include Text
-					Token token = new Token(annotationBegin, annotationEnd, "");
+					// Does not include text
+
+					// Find contentTag
+					String contentTag = "";
+					for (Annotation contentAnnotations : tokenizable) {
+						final int begin = contentAnnotations.getBegin();
+						final int end = contentAnnotations.getEnd();
+						if(begin <= annotationBegin && annotationEnd <= end) {
+							contentTag = annotation.getFeatures().get("TagName");
+							break;
+						}
+					}
+
+					// Create token without text
+					Token token = new Token(annotationBegin, annotationEnd, "", contentTag);
 					token.addAnnotation(rend);
 					tokens.add(token);
 					// Sort tokens

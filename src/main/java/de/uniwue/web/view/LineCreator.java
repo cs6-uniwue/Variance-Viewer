@@ -71,8 +71,8 @@ public class LineCreator {
 					if (tokenContent.contains(System.lineSeparator())) {
 						int begin = token.getBegin();
 						for (String contentPart : tokenContent.split(TOKENSPLIT)) {
-							Token tokenPart = new Token(begin, begin + contentPart.length(), contentPart,
-									token.getAnnotations());
+							Token tokenPart = new Token(begin, begin + contentPart.length(), contentPart, 
+									token.getContentTag(), token.getAnnotations());
 							begin += contentPart.length();
 							originalLine.addContent(
 									new Content(tokenPart, ContentType.EQUAL, varianceType, null));
@@ -110,7 +110,7 @@ public class LineCreator {
 		long inTokenPos = 0;
 		for (String contentPart : token.getContent().split(TOKENSPLIT)) {
 			int partLength = contentPart.length();
-			Token tokenPart = new Token(begin, begin + partLength, contentPart, token.getAnnotations());
+			Token tokenPart = new Token(begin, begin + partLength, contentPart, token.getContentTag(), token.getAnnotations());
 			long intTokenEnd = inTokenPos+partLength;
 			
 			List<long[]> highlight = new LinkedList<>();

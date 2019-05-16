@@ -8,7 +8,7 @@ package de.uniwue.compare.token;
 public class AnnotationToken extends Token {
 
 	public AnnotationToken(Token token) {
-		super(token.getBegin(), token.getEnd(), token.getContent(), token.getAnnotations());
+		super(token.getBegin(), token.getEnd(), token.getContent(), token.getContentTag(), token.getAnnotations());
 		this.highlight = token.highlight;
 	}
 
@@ -21,6 +21,8 @@ public class AnnotationToken extends Token {
 		if (getClass() != obj.getClass())
 			return false;
 		Token other = (Token) obj;
+		if(!other.contentTag.contentEquals(contentTag)) 
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;

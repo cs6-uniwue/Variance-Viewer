@@ -8,7 +8,7 @@ package de.uniwue.compare.token;
 public class TextToken extends Token {
 
 	public TextToken(Token token) {
-		super(token.getBegin(),token.getEnd(),token.getContent(),token.getAnnotations());
+		super(token.getBegin(),token.getEnd(),token.getContent(),token.getContentTag(),token.getAnnotations());
 		this.highlight = token.highlight;
 	}
 	
@@ -20,7 +20,9 @@ public class TextToken extends Token {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		TextToken other = (TextToken) obj;
+		Token other = (Token) obj;
+		if(!other.contentTag.contentEquals(contentTag)) 
+			return false;
 		if (content == null) {
 			if (other.content != null)
 				return false;

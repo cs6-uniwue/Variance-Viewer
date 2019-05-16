@@ -168,20 +168,33 @@ function getTEIconformJSON() {
     let directIncluding = null;
     let jsonID = teiJson.annotations.length;
 
-    teiJson.annotations.forEach(a => { if(!a.jsonId || a.jsonId === "#undefined") a.jsonID = jsonID++;});
+    teiJson.annotations.forEach(a => { if((typeof value === 'undefined' || variable === null) || a.jsonId === "#undefined") a.jsonID = jsonID++;});
 
     teiJson.annotations.forEach(a => {
         switch (a.type) {
             case GROUPID + ".type.INSERT":
-                a.type = "rdg";
+                a.type = "de.uniwue.kalimachos.coref.type.TeiType";
                 a.features.TagName = "rdg";
+                a.features.Attributes = "";
                 
                 const insertParent = getParentOrNull(a.jsonId);
 
                 if (insertParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"], "TagName":"app" } });
-                    newAnnotations.push({ "type": "lem", "begin": a.begin, "end": a.begin, "features": { "Parent": { "jsonId": newParentId }, "TagName":"lem" } });
+                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
+                                            "features": {
+                                                "type": a.features["variance-type"],
+                                                "TagName":"app",
+                                                "Attributes":""
+                                            } 
+                                        });
+                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "begin": a.begin, "end": a.begin, 
+                                            "features": {
+                                                "Parent": { "jsonId": newParentId },
+                                                "TagName":"lem",
+                                                "Attributes":""
+                                            }
+                                        });
                     a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -190,21 +203,39 @@ function getTEIconformJSON() {
                 delete a.features["variance-type"];
                 delete a.features["annotations"];
 
+                // Get all tags directly surrounding rdg and set them as child of rdg
                 directIncluding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 if(directIncluding.length > 0){
                     let parent = a;
-                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.Parent = {jsonId:parent.jsonId}; parent = s}})
+                    directIncluding.forEach(s => {
+                        if(!(s.features.TagName && ["rdg","lem","app"].includes(s.features.TagName))) {
+                            s.features.Parent = {jsonId:parent.jsonId}; parent = s
+                        }
+                    });
                 }
                 break;
             case GROUPID + ".type.DELETE":
-                a.type = "lem";
+                a.type = "de.uniwue.kalimachos.coref.type.TeiType";
                 a.features.TagName = "lem";
+                a.features.Attributes = "";
                 const deleteParent = getParentOrNull(a.jsonId);
 
                 if (deleteParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "rdg", "begin": a.end, "end": a.end, "features": { "Parent": { "jsonId": newParentId }, "TagName":"rdg" } });
-                    newAnnotations.push({ "type": "app", "jsonId": newParentId, "begin": a.begin, "end": a.end, "features": { "type": a.features["variance-type"] }, "TagName":"app" });
+                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "begin": a.end, "end": a.end,
+                                            "features": {
+                                                "Parent": { "jsonId": newParentId }, 
+                                                "TagName":"rdg",
+                                                "Attributes":"" 
+                                            }
+                                        });
+                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
+                                            "features": {
+                                                "type": a.features["variance-type"],
+                                                "TagName":"app",
+                                                "Attributes":""
+                                            }
+                                        });
                     a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -213,24 +244,36 @@ function getTEIconformJSON() {
                 delete a.features["variance-type"];
                 delete a.features["annotations"];
 
+                // Get all tags directly surrounding rdg and set them as child of rdg
                 directIncluding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 if(directIncluding.length > 0){
                     let parent = a;
-                    directIncluding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)) {s.features.Parent = {jsonId:parent.jsonId}; parent = s}})
+                    directIncluding.forEach(s => {
+                        if(!(s.features.TagName && ["rdg","lem","app"].includes(s.features.TagName))) {
+                            s.features.Parent = {jsonId:parent.jsonId}; parent = s
+                        }
+                    });
                 }
                 break;
             case GROUPID + ".type.CHANGE":
-                a.type = "app";
+                a.type = "de.uniwue.kalimachos.coref.type.TeiType";
                 a.features.TagName = "app";
+                a.features.Attributes = "";
                 delete a.features["insert"];
                 delete a.features["delete"];
 
+                // Get all tags directly surrounding app, that are not rdg and lem, to set them as parent of app
                 const directSurrounding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 a.features["type"] = a.features["variance-type"];
                 delete a.features["variance-type"];
                 if(directSurrounding.length > 0){
                     let child = a;
-                    directSurrounding.forEach(s => {if(!["rdg","lem","app"].includes(s.type)){child.features.Parent = {jsonId:s.jsonId}; child = s; }})
+                    directSurrounding.forEach(s => {
+                        if(!(s.features.TagName && ["rdg","lem","app"].includes(s.features.TagName))){
+                            child.features.Parent = {jsonId:s.jsonId};
+                            child = s; 
+                        }
+                    });
                 }
                 break;
             default:

@@ -1,5 +1,5 @@
 /**
- *
+ * Part of the WebAthen Application used for parsing from and to TEI xml
  */
 const RANGE_PRIMITIVE = "RANGE_PRIMITIVE";
 const RANGE_ANNOTATION = "RANGE_ANNOTATION";
@@ -408,10 +408,12 @@ const webEditorIO = (function () {
                 let currAnno = annos[i];
                 if (currAnno.features.hasOwnProperty("parent") || currAnno.features.hasOwnProperty("Parent")) {
                     let parentType = currAnno.features.hasOwnProperty("parent") ? currAnno.features.parent.type : currAnno.features.Parent.type;
-                    if (parentType && childrenMap.hasOwnProperty(parentType) && childrenMap[parentType].indexOf(currAnno.type) === -1) {
-                        childrenMap[parentType].push(currAnno.type);
+                    if (parentType && childrenMap.hasOwnProperty(parentType)) {
+                        if(childrenMap[parentType].indexOf(currAnno.type) === -1){
+                            childrenMap[parentType].push(currAnno.type);
+                        }
                     }
-                    else {
+                    else if(parentType) {
                         let arr = [];
                         arr.push(currAnno.type);
                         childrenMap[parentType] = arr;
@@ -655,7 +657,10 @@ const webEditorIO = (function () {
             if (teiAnno.features.hasOwnProperty("parent") || teiAnno.features.hasOwnProperty("Parent")) {
                 let parentType = teiAnno.features.parent ? teiAnno.features.parent.features.TagName.trim() : teiAnno.features.Parent.features.TagName.trim();
                 if (parentType && childrenMap.hasOwnProperty(parentType)) {
-                    childrenMap[parentType].push(teiAnno.features.TagName.trim());
+                    const thisType = teiAnno.features.TagName.trim()
+                    if(childrenMap[parentType].indexOf(thisType) === -1){
+                        childrenMap[parentType].push(thisType);
+                    }
                 }
                 else if (parentType) {
                     let arr = [];

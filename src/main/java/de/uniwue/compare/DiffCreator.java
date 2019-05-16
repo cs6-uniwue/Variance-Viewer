@@ -527,7 +527,7 @@ public class DiffCreator {
 
 		for (Token token : list) {
 			String content = normalize(token.getContent(), normalizerStorage);
-			normalized.add(new Token(token.getBegin(), token.getEnd(), content, token.getAnnotations()));
+			normalized.add(new Token(token.getBegin(), token.getEnd(), content, token.getContentTag(), token.getAnnotations()));
 		}
 		return normalized;
 	}
