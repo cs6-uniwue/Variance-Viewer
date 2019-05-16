@@ -48,6 +48,9 @@ public class XMLCleaner {
 		// Remove comments <!--.*-->
 		cleanXML = cleanXML.replaceAll("<!--.*-->", "");
 		
+        // Remove <attr>:<attr> attrubutes
+		cleanXML = cleanXML.replaceAll("[^\\s]*:[^=\\s]+=(\"[^\"]*\"|'[^']*')","");
+
 		// Reattach header
 		cleanXML = header + cleanXML;
 
