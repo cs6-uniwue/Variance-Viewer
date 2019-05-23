@@ -105,7 +105,7 @@ function download() {
             document.title = websiteTitle;
             break;
         case "tei":
-            var tei = webEditorIO.serializeDocumentToFormat(getTEIconformJSON(), "tei");
+            var tei = serializeDocumentToFormat(getTEIconformJSON(), "tei");
             tei = tei.replace(/ xml-id=\"([^"]*)\"/g, "");
             tei = tei.replace(/ xml:id=\"([^"]*)\"/g, "");
             tei = tei.replace(/ ref=\"([^"]*)\"/g, "");
@@ -181,13 +181,13 @@ function getTEIconformJSON() {
 
                 if (insertParent == null) {
                     const newParentId = jsonID++;
-                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
+                    let app = { "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
                                             "features": {
                                                 "type": a.features["variance-type"],
                                                 "TagName":"app",
                                                 "Attributes":""
                                             } 
-                                        });
+                                        };
                     newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "begin": a.begin, "end": a.begin, 
                                             "features": {
                                                 "Parent": { "jsonId": newParentId },
@@ -195,6 +195,14 @@ function getTEIconformJSON() {
                                                 "Attributes":""
                                             }
                                         });
+
+                    // Find a parent for the new app
+                    let parent = findAParent(app);
+                    if(parent){
+                        app.features.Parent = {jsonId:parent};
+                    }
+                    newAnnotations.push(app);
+
                     a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -229,13 +237,21 @@ function getTEIconformJSON() {
                                                 "Attributes":"" 
                                             }
                                         });
-                    newAnnotations.push({ "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
+                    const app = { "type": "de.uniwue.kalimachos.coref.type.TeiType", "jsonId": newParentId, "begin": a.begin, "end": a.end,
                                             "features": {
                                                 "type": a.features["variance-type"],
                                                 "TagName":"app",
                                                 "Attributes":""
                                             }
-                                        });
+                                        };
+
+                    // Find a parent for the new app
+                    let parent = findAParent(app);
+                    if(parent){
+                        app.features.Parent = {jsonId:parent};
+                    }
+                    newAnnotations.push(app);
+
                     a.features.Parent = { "jsonId": newParentId };
                 } else {
                     a.features.rend = a.features["annotations"];
@@ -261,19 +277,12 @@ function getTEIconformJSON() {
                 a.features.Attributes = "";
                 delete a.features["insert"];
                 delete a.features["delete"];
-
-                // Get all tags directly surrounding app, that are not rdg and lem, to set them as parent of app
-                const directSurrounding = teiJson.annotations.filter(o => o.begin === a.begin && o.end === a.end);
                 a.features["type"] = a.features["variance-type"];
                 delete a.features["variance-type"];
-                if(directSurrounding.length > 0){
-                    let child = a;
-                    directSurrounding.forEach(s => {
-                        if(!(s.features.TagName && ["rdg","lem","app"].includes(s.features.TagName))){
-                            child.features.Parent = {jsonId:s.jsonId};
-                            child = s; 
-                        }
-                    });
+
+                let parent = findAParent(a);
+                if(parent){
+                    a.features.Parent = {jsonId:parent};
                 }
                 break;
             default:
@@ -324,11 +333,28 @@ function getParentOrNull(jsonId) {
     let parent = null;
 
     exportJSON.annotations.forEach(a => {
-        if (a.type === change && ((a.features.insert && a.features.insert.jsonId == jsonId) || (a.features.delete && a.features.delete.jsonId == jsonId)))
+        if (a.type === change && ((a.features.insert && a.features.insert.jsonId == jsonId) 
+                                    || (a.features.delete && a.features.delete.jsonId == jsonId)))
             parent = a;
     });
 
     return parent;
+}
+
+function findAParent(annotation){
+    const filterOut = [GROUPID+".type.CHANGE",GROUPID+".type.DELETE",GROUPID+".type.INSERT"]
+    // Get all tags directly surrounding app, that are not rdg and lem, to set them as parent of app
+    const directSurrounding = exportJSON.annotations.filter(a => !filterOut.includes(a.type))
+                                                .filter(o => o.begin <= annotation.begin && annotation.end <= o.end);
+    if(directSurrounding.length > 0){
+        directSurrounding.sort((a,b) => {
+            const c = b.begin - a.begin;
+            return c != 0 ? c : a.end - b.end;
+        });
+        
+        return directSurrounding[0].jsonId;
+    } 
+    return null;
 }
 
 function resolveReferences(annotations) {
