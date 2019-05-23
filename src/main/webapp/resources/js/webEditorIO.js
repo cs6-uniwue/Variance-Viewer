@@ -14,8 +14,13 @@ const ATHEN_DEFAULT_NAMESPACE = "de.uniwue.athen.";
 const XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>";
 const TEI_HEADER = "<TEI xmlns=\"http://www.tei-c.org/ns/1.0\">";
 
-//returns a string that contains all to be able to save the document!!
-function serializeDocumentToFormat(document, format, xmlMapping) {
+/**
+ * Convert a UIMA document into different formats.
+ * 
+ * @param {*} editorDocument 
+ * @param {*} format 
+ */
+function serializeDocumentToFormat(document, format) {
 
     if (format === 'json') {
         return JSON.stringify({
@@ -29,70 +34,36 @@ function serializeDocumentToFormat(document, format, xmlMapping) {
     }
 
     else if (format === "xml" || format === "tei") {
-        return convertToXMLString(document, xmlMapping, format);
+        return convertToXMLString(document, format);
     }
 }
 
-function sortAnnotations(annotations) {
-    // Set all children as children of their parents and get all root annotations
-    const rootAnnos = [];
-    for(const anno of annotations){
-        if(("features" in anno) && (("parent" in anno.features) || ("Parent" in anno.features))){
-            const parent = (anno.features.parent || anno.features.Parent);
-            // Init children in parent if not exists
-            delete anno.features.parent;
-            delete anno.features.Parent;
-            parent.children = (parent.children || []);
-            parent.children.push(anno);
-        } else {
-            rootAnnos.push(anno);
+/**
+ * Check if a document is a tei document by checking its annotations.
+ * 
+ * @param {*} annotations 
+ */
+function checkForTEIType(annotations) {
+    for (let i = 0; i < annotations.length; i++) {
+        if (annotations[i].type === "de.uniwue.kalimachos.coref.type.TeiType") {
+            return true;
         }
     }
-
-    return unfoldChildren(rootAnnos);
+    return false;
 }
 
-const comparator = function (anno1, anno2) {
-    //sort by begin
-    if (anno1.begin !== anno2.begin) {
-        return anno1.begin - anno2.begin;
-    }
-
-    //sort by end
-    if (anno1.end !== anno2.end) {
-        return anno2.end - anno1.end;
-    }
-
-    //then by end, the smaller anno should be later
-    return anno2.end - anno1.end;
-};
-
-function unfoldChildren(annotations){
-    // Sort root annotations
-    annotations.sort(comparator);
-    sortedAnnos = [];
-    for(const rootAnno of annotations){
-        sortedAnnos.push(rootAnno);
-        const children = rootAnno.children;
-        delete rootAnno.children;
-
-        if(children){
-            sortedAnnos = sortedAnnos.concat(unfoldChildren(children));
-        }
-    }
-
-    return sortedAnnos;
-}
-function convertToXMLString(editorDocument, mapping, format) {
+/**
+ * Convert a UIMA document to a xml string.
+ * 
+ * @param {*} editorDocument 
+ * @param {*} format 
+ */
+function convertToXMLString(editorDocument, format) {
 
     let xmlString = format === "xml" ? XML_HEADER : "";
     let containsTeiType = checkForTEIType(editorDocument.annotations);
 
-    //this map stores which types can have which other types as children
-    let childrenMap = {};
     if (format === "tei") {
-
-
         if (!containsTeiType) {
             xmlString += TEI_HEADER;
             //check if there are teiType annotations included; and if so change these to the according TEI
@@ -127,66 +98,10 @@ function convertToXMLString(editorDocument, mapping, format) {
     }
 
     //sort again and also respect the parent hierarchy
-    annos = sortAnnotations(editorDocument.annotations);
+    const tree = buildAnnotationTree(editorDocument.annotations);
+
     //now we can actually build the xml string
-
-    let currentTextIndex = 0;
-    let currentAnnoIndex = 0;
-    let currentAnno = annos[currentAnnoIndex];
-    const openAnnos = [];
-
-    outer:   while (currentTextIndex < editorDocument.text.length) {
-
-        //check if we need to close one or more annotations
-        for (let j = openAnnos.length - 1; j >= 0; j--) {
-            if (openAnnos[j].end === currentTextIndex) {
-
-                if (currentAnno && currentAnno.end === currentAnno.begin) {
-                    //special case for empty annotations
-                    if (childrenMap[openAnnos[j].type] && childrenMap[openAnnos[j].type].indexOf(currentAnno.type) !== -1) {
-                        //add an empty html
-                        xmlString += "<" + currentAnno.type.split(".").pop() + "/>";
-                        currentAnnoIndex += 1;
-                        currentAnno = annos[currentAnnoIndex];
-                        continue outer;
-                    }
-                }
-                //we close it
-                xmlString += "</" + openAnnos[j].type.split(".").pop().trim() + ">";
-                openAnnos.pop();
-
-
-            }
-            else {
-                //no other element can be closed
-                break;
-            }
-        }
-
-        if ((currentAnno && currentTextIndex < currentAnno.begin) || currentAnnoIndex === annos.length) {
-            //just append the text
-            xmlString += editorDocument.text.charAt(currentTextIndex);
-        }
-
-        //we append the annotation now
-        if (currentAnno && currentTextIndex === currentAnno.begin) {
-            let annoFeatureString = createFeaturesAsXMLString(currentAnno);
-            xmlString += "<" + currentAnno.type.split(".").pop() + " " + annoFeatureString + ">";
-            openAnnos.push(currentAnno);
-            //and update the currentAnno
-            currentAnnoIndex += 1;
-            currentAnno = annos[currentAnnoIndex];
-            //we continue because maybe there maybe more than 1 annotation with the same start index
-            continue;
-        }
-        currentTextIndex += 1;
-    }
-
-    //and finally close open annos
-    for (let j = openAnnos.length - 1; j >= 0; j--) {
-        //we close it
-        xmlString += "</" + openAnnos[j].type.split(".").pop() + ">";
-    }
+    xmlString += parseTree(tree,editorDocument.text);
 
     //if it is a TEI document we have to close it accordingly
     if (format === "tei") {
@@ -198,12 +113,122 @@ function convertToXMLString(editorDocument, mapping, format) {
                 " </text>\n" +
                 "</TEI>"
         }
-
     }
-
     return xmlString;
 }
 
+/**
+ * Annotation comparator, sorting annotations by their position in the text.
+ * 
+ * @param {*} anno1 
+ * @param {*} anno2 
+ */
+const comparator = function (anno1, anno2) {
+    //sort by begin
+    if (anno1.begin !== anno2.begin) {
+        return anno1.begin - anno2.begin;
+    }
+
+    //sort by end
+    return anno1.end - anno2.end;
+};
+
+/**
+ * Building an annotation tree from a list of annotation.
+ * The tree starts with all annotations without a parent annotation.
+ * Every annotation in the tree will point to all its children and annotations on 
+ * the same level will be sorted by their position in the text.
+ * 
+ * @param {*} annotations 
+ */
+function buildAnnotationTree(annotations) {
+    // Set all children as children of their parents and get all root annotations
+    const rootAnnos = [];
+    for(const anno of annotations){
+        if(anno.type !== "uima.tcas.DocumentAnnotation"){
+            if(("features" in anno) && (("parent" in anno.features) || ("Parent" in anno.features))){
+                const parent = (anno.features.parent || anno.features.Parent);
+                // Init children in parent if not exists
+                delete anno.features.parent;
+                delete anno.features.Parent;
+                parent.children = (parent.children || []);
+                parent.children.push(anno);
+                parent.children.sort(comparator);
+            } else {
+                rootAnnos.push(anno);
+            }
+        }
+    }
+    rootAnnos.sort(comparator);
+    return rootAnnos;
+}
+
+/**
+ * Parse an annotations tree and text into an xml string.
+ * 
+ * @param {*} annotations 
+ * @param {*} text 
+ */
+function parseTree(annotations, text){
+    // Sort root annotations
+    annotations.sort(comparator);
+    let xmlString = "";
+    
+    if(annotations.length > 0){
+        let lastEnd = annotations[0].begin;
+
+        for(const currentAnno of annotations){
+            // Add text inbetween annotations
+            if(lastEnd < currentAnno.begin){
+                xmlString += text.substring(lastEnd,currentAnno.begin);
+            }
+
+            // Get importent annotation information
+            const currentType = currentAnno.type.split(".").pop();
+            const annoFeatureString = createFeaturesAsXMLString(currentAnno);
+            const children = currentAnno.children;
+
+            // Add empty
+            if (currentAnno.end === currentAnno.begin && (!children || children.length == 0)) {
+                if(annoFeatureString){
+                    xmlString += "<"+currentType+" "+annoFeatureString+"/>"
+                } else {
+                    xmlString += "<"+currentType+"/>"
+                }
+            } else {
+                xmlString += "<"+currentType+" "+annoFeatureString+">"
+                if(children && children.length > 0){
+                    children.sort(comparator);
+
+                    // Extract text before children
+                    const begin_children = children[0].begin;
+                    if(currentAnno.begin < begin_children){
+                        xmlString += text.substring(currentAnno.begin,begin_children);
+                    }
+
+                    xmlString += parseTree(children, text);
+
+                    // Extract text after children
+                    const end_children = children[children.length-1].end;
+                    if(end_children < currentAnno.end){
+                        xmlString += text.substring(end_children,currentAnno.end);
+                    }
+                } else { 
+                    xmlString += text.substring(currentAnno.begin,currentAnno.end);
+                }
+                xmlString += "</"+currentType+">"
+            }
+            lastEnd = currentAnno.end;
+        }
+    }
+    return xmlString;
+}
+
+/**
+ * Create an xml string from all features of an annotation
+ * 
+ * @param {*} anno 
+ */
 function createFeaturesAsXMLString(anno) {
 
     let annoString = "";
@@ -269,7 +294,11 @@ function createFeaturesAsXMLString(anno) {
     return annoString;
 }
 
-
+/**
+ * Convert TEI Annotations to real annotations.
+ * 
+ * @param {*} annotations 
+ */
 function convertAnnotations(annotations) {
     for (let i = 0; i < annotations.length; i++) {
         let teiAnno = annotations[i];
@@ -284,22 +313,12 @@ function convertAnnotations(annotations) {
                 if (value) {
                     value = value.trim();
                 }
-                teiAnno.features[featName] = value;
+                if (featName && value && featName !== "null" && value !== "null"){
+                    teiAnno.features[featName] = value;
+                }
             }
             delete teiAnno.features["Attributes"];
         }
     }
     return annotations;
 }
-
-
-
-function checkForTEIType(annotations) {
-    for (let i = 0; i < annotations.length; i++) {
-        if (annotations[i].type === "de.uniwue.kalimachos.coref.type.TeiType") {
-            return true;
-        }
-    }
-    return false;
-}
-
