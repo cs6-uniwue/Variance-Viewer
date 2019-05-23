@@ -135,6 +135,5 @@
 		var exportJSON = ${exportJSON};
 	</script>
 	<script type="text/javascript" src="resources/js/underscore-min.js"></script>
-	<script type="text/javascript" src="resources/js/webEditorIO.js"></script>
 	<script type="text/javascript" src="resources/js/viewer.js"></script>
 </t:webpage>

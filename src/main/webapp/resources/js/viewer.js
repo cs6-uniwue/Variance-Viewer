@@ -1,5 +1,6 @@
-//*** Legend ***//
-const GROUPID = "de.uniwue.diff";
+/***************************************
+ **************** GUI ******************
+ ***************************************/
 let deselected = [];
 let deselectedTypes = ["SEPARATION"];
 let remove = [];
@@ -105,19 +106,7 @@ function download() {
             document.title = websiteTitle;
             break;
         case "tei":
-            var tei = serializeDocumentToFormat(getTEIconformJSON(), "tei");
-            tei = tei.replace(/ xml-id=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ xml:id=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ ref=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ parent=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ Parent=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ TagName=\"([^"]*)\"/g, "");
-            tei = tei.replace(/ TagName=\"([^"]*)\"/g, "");
-            tei = tei.replace(/<DocumentAnnotation language="x-unspecified">/g,"");
-            tei = tei.replace(/<\/DocumentAnnotation>/g,"");
-            tei = tei.replace(/xmlns="http:\/\/www\.tei-c\.org\/ns\/1\.0\nxmlns:rws"/g, 'xmlns="http://www.tei-c.org/ns/1.0"');
-            tei = '<?xml version="1.0" encoding="UTF-8"?>\n'+tei  
-            a.href = window.URL.createObjectURL(new Blob([tei], { type: "text/xml" }));
+            a.href = window.URL.createObjectURL(new Blob([convertToXMLString(getTEIconformJSON(), "tei")], { type: "text/xml" }));
             a.download = filename + ".xml";
             break;
 
@@ -159,8 +148,18 @@ document.querySelectorAll(".openHelp").forEach((open) => open.addEventListener("
 blur.addEventListener("click", () => {closeDownload(); closeHelp()});
 
 
-/*** Converter ***/
+/***************************************
+ ************ Converter ****************
+ ***************************************/
+
+const GROUPID = "de.uniwue.diff";
+
+/**
+ * Transform the exportJSON into a TEI conform UIMA JSON
+ * (Convert de.uniwue.diff.* into TEI types and add additional annotations if neccesary)
+ */
 function getTEIconformJSON() {
+    // Clone exportJSON
     let teiJson = JSON.parse(JSON.stringify(exportJSON));
 
     let newAnnotations = [];
@@ -168,8 +167,12 @@ function getTEIconformJSON() {
     let directIncluding = null;
     let jsonID = teiJson.annotations.length;
 
-    teiJson.annotations.forEach(a => { if((typeof value === 'undefined' || variable === null) || a.jsonId === "#undefined") a.jsonID = jsonID++;});
+    // Add IDs to every annotation without one
+    teiJson.annotations.forEach(a => { 
+        if((typeof value === 'undefined' || variable === null) || a.jsonId === "#undefined") a.jsonID = jsonID++;
+    });
 
+    // Change de.uniwue.diff.type.{INSERT,DELETE,CHANGE} annotations to TEI annotations
     teiJson.annotations.forEach(a => {
         switch (a.type) {
             case GROUPID + ".type.INSERT":
@@ -177,7 +180,7 @@ function getTEIconformJSON() {
                 a.features.TagName = "rdg";
                 a.features.Attributes = "";
                 
-                const insertParent = getParentOrNull(a.jsonId);
+                const insertParent = getDiffRootOrNull(a.jsonId);
 
                 if (insertParent == null) {
                     const newParentId = jsonID++;
@@ -197,7 +200,7 @@ function getTEIconformJSON() {
                                         });
 
                     // Find a parent for the new app
-                    let parent = findAParent(app);
+                    let parent = findNearestParent(app);
                     if(parent){
                         app.features.Parent = {jsonId:parent};
                     }
@@ -226,7 +229,7 @@ function getTEIconformJSON() {
                 a.type = "de.uniwue.kalimachos.coref.type.TeiType";
                 a.features.TagName = "lem";
                 a.features.Attributes = "";
-                const deleteParent = getParentOrNull(a.jsonId);
+                const deleteParent = getDiffRootOrNull(a.jsonId);
 
                 if (deleteParent == null) {
                     const newParentId = jsonID++;
@@ -246,7 +249,7 @@ function getTEIconformJSON() {
                                         };
 
                     // Find a parent for the new app
-                    let parent = findAParent(app);
+                    let parent = findNearestParent(app);
                     if(parent){
                         app.features.Parent = {jsonId:parent};
                     }
@@ -280,7 +283,7 @@ function getTEIconformJSON() {
                 a.features["type"] = a.features["variance-type"];
                 delete a.features["variance-type"];
 
-                let parent = findAParent(a);
+                let parent = findNearestParent(a);
                 if(parent){
                     a.features.Parent = {jsonId:parent};
                 }
@@ -289,46 +292,33 @@ function getTEIconformJSON() {
         }
     });
 
-    teiJson.annotations = teiJson.annotations.filter(a => !a.type.includes(GROUPID));
-
+    // Delete unneeded UIMA types specifications 
     teiJson.annotations = teiJson.annotations.concat(newAnnotations);
-    const parentFeature = {name:"Parent",range:"RANGE_ANNOTATION"};
-    teiJson.types.forEach(t => {
-        switch (t.name) {
-            case GROUPID + ".type.INSERT":
-                t.name = "rdg";
-                t.features.forEach(f => {
-                    switch (f.name) {
-                        case "variance-type": f.name = "type"; break;
-                        case "annotations": f.name = "rend"; break;
-                    }
-                });
-                break;
-            case GROUPID + ".type.DELETE":
-                t.name = "lem";
-                t.features.forEach(f => {
-                    switch (f.name) {
-                        case "variance-type": f.name = "type"; break;
-                        case "annotations": f.name = "rend"; break;
-                    }
-                });
-                break;
-            case GROUPID + ".type.CHANGE":
-                t.name = "app";
-                t.features.push({name:'type',range:"RANGE_PRIMITIVE"});
-                break;
-            default:
-                
-        }
-        t.features.push(parentFeature);
-    });
+    teiJson.types = teiJson.types.filter(c => !c.name.includes(GROUPID));
 
-    resolveReferences(teiJson.annotations);
+    // Resolve TEI references by replaceing jsonIds with their json object
+    const map = new Map();
+    for(const anno of teiJson.annotations) {
+        map.set(anno.jsonId, anno);
+    }
+
+    for(const anno of teiJson.annotations) {
+        const features = anno.features;
+        for (const member in features) {
+            // Replace every {jsonId:<id>} with the real object
+            if (features[member].hasOwnProperty('jsonId')) {
+                features[member] = map.get(features[member].jsonId);
+            }
+        }
+    }
 
     return teiJson;
 }
 
-function getParentOrNull(jsonId) {
+/** 
+ * Find the root object of a de.uniwue.diff.* by its jsonId and return it or null if none exist.
+ */
+function getDiffRootOrNull(jsonId) {
     const change = GROUPID + ".type.CHANGE";
     let parent = null;
 
@@ -341,10 +331,13 @@ function getParentOrNull(jsonId) {
     return parent;
 }
 
-function findAParent(annotation){
-    const filterOut = [GROUPID+".type.CHANGE",GROUPID+".type.DELETE",GROUPID+".type.INSERT"]
+/** 
+ * Find the parent of an annotations by checking for the annotation directly surrounding it,
+ * or null if none exist
+ */
+function findNearestParent(annotation){
     // Get all tags directly surrounding app, that are not rdg and lem, to set them as parent of app
-    const directSurrounding = exportJSON.annotations.filter(a => !filterOut.includes(a.type))
+    const directSurrounding = exportJSON.annotations.filter(a => !a.type.includes(GROUPID))
                                                 .filter(o => o.begin <= annotation.begin && annotation.end <= o.end);
     if(directSurrounding.length > 0){
         directSurrounding.sort((a,b) => {
@@ -357,30 +350,281 @@ function findAParent(annotation){
     return null;
 }
 
-function resolveReferences(annotations) {
-    //map each annotation to its id
-    let map = new Map();
+/**
+ * Check if a document is a tei document by checking its annotations.
+ * 
+ * @param {*} annotations 
+ */
+function checkForTEIType(annotations) {
+    for (let i = 0; i < annotations.length; i++) {
+        if (annotations[i].type === "de.uniwue.kalimachos.coref.type.TeiType") {
+            return true;
+        }
+    }
+    return false;
+}
 
-    let len = annotations.length;
-    for (let i = 0; i < len; i++) {
-        map.set(annotations[i].jsonId, annotations[i]);
+/**
+ * Convert a UIMA document to a xml string.
+ * 
+ * @param {*} uimaJson 
+ * @param {*} format 
+ */
+function convertToXMLString(uimaJson, format) {
+    let xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+    let containsTeiType = checkForTEIType(uimaJson.annotations);
+
+    if (format === "tei") {
+        if (!containsTeiType) {
+            xmlString += '<TEI xmlns="http://www.tei-c.org/ns/1.0">\n';
+            //check if there are teiType annotations included; and if so change these to the according TEI
+            //append the TEI header
+            xmlString += "<teiHeader>\n" +
+                " <fileDesc>\n" +
+                "  <titleStmt>\n" +
+                "   <title></title>\n" +
+                "   <respStmt>\n" +
+                "    <resp></resp>\n" +
+                "    <name></name>\n" +
+                "   </respStmt>\n" +
+                "  </titleStmt>\n" +
+                "  <publicationStmt>\n" +
+                "   <distributor></distributor>\n" +
+                "  </publicationStmt>\n" +
+                "  <sourceDesc>\n" +
+                "   <bibl></bibl>\n" +
+                "  </sourceDesc>\n" +
+                " </fileDesc>\n" +
+                "</teiHeader>" +
+                " <text>\n" +
+                "  <front>\n" +
+                "<!-- front matter of copy text, if any, goes here -->\n" +
+                "  </front>\n" +
+                "  <body>"
+        }
+        else {
+            //now there are tei types available which means we had a valid TEI document before!
+            uimaJson.annotations = convertAnnotations(uimaJson.annotations);
+        }
     }
 
-    //and now replace the features with the according annotations
-    //loop through all annotations and all features
+    //sort again and also respect the parent hierarchy
+    const tree = buildAnnotationTree(uimaJson.annotations);
 
-    for (let i = 0; i < len; i++) {
+    //now we can actually build the xml string
+    xmlString += parseTree(tree,uimaJson.text);
 
-        let features = annotations[i].features;
+    //if it is a TEI document we have to close it accordingly
+    if (format === "tei") {
+        if (!containsTeiType) {
+            xmlString += "  </body>\n" +
+                "  <back>\n" +
+                "<!-- back matter of copy text, if any, goes here -->\n" +
+                "  </back>\n" +
+                " </text>\n" +
+                "</TEI>"
+        }
+    }
+    return xmlString;
+}
 
-        //loop through features
-        for (let member in features) {
-            //if it has an id it is an object
-            if (features[member].hasOwnProperty('jsonId')) {
-                //replace it with the mapped annotation
-                features[member] = map.get(features[member].jsonId);
+/**
+ * Annotation comparator, sorting annotations by their position in the text.
+ * 
+ * @param {*} anno1 
+ * @param {*} anno2 
+ */
+const comparator = function (anno1, anno2) {
+    //sort by begin
+    if (anno1.begin !== anno2.begin) {
+        return anno1.begin - anno2.begin;
+    }
+
+    //sort by end
+    return anno1.end - anno2.end;
+};
+
+/**
+ * Building an annotation tree from a list of annotation.
+ * The tree starts with all annotations without a parent annotation.
+ * Every annotation in the tree will point to all its children and annotations on 
+ * the same level will be sorted by their position in the text.
+ * 
+ * @param {*} annotations 
+ */
+function buildAnnotationTree(annotations) {
+    // Set all children as children of their parents and get all root annotations
+    const rootAnnos = [];
+    for(const anno of annotations){
+        if(anno.type !== "uima.tcas.DocumentAnnotation"){
+            if(("features" in anno) && (("parent" in anno.features) || ("Parent" in anno.features))){
+                const parent = (anno.features.parent || anno.features.Parent);
+                // Init children in parent if not exists
+                delete anno.features.parent;
+                delete anno.features.Parent;
+                parent.children = (parent.children || []);
+                parent.children.push(anno);
+                parent.children.sort(comparator);
+            } else {
+                rootAnnos.push(anno);
+            }
+        }
+    }
+    rootAnnos.sort(comparator);
+    return rootAnnos;
+}
+
+/**
+ * Parse an annotations tree and text into an xml string.
+ * 
+ * @param {*} annotations 
+ * @param {*} text 
+ */
+function parseTree(annotations, text){
+    // Sort root annotations
+    annotations.sort(comparator);
+    let xmlString = "";
+    
+    if(annotations.length > 0){
+        let lastEnd = annotations[0].begin;
+
+        for(const currentAnno of annotations){
+            // Add text inbetween annotations
+            if(lastEnd < currentAnno.begin){
+                xmlString += text.substring(lastEnd,currentAnno.begin);
+            }
+
+            // Get importent annotation information
+            const currentType = currentAnno.type.split(".").pop();
+            const annoFeatureString = createFeaturesAsXMLString(currentAnno);
+            const children = currentAnno.children;
+
+            // Add empty
+            if (currentAnno.end === currentAnno.begin && (!children || children.length == 0)) {
+                if(annoFeatureString){
+                    xmlString += "<"+currentType+" "+annoFeatureString+"/>"
+                } else {
+                    xmlString += "<"+currentType+"/>"
+                }
+            } else {
+                xmlString += "<"+currentType+" "+annoFeatureString+">"
+                if(children && children.length > 0){
+                    children.sort(comparator);
+
+                    // Extract text before children
+                    const begin_children = children[0].begin;
+                    if(currentAnno.begin < begin_children){
+                        xmlString += text.substring(currentAnno.begin,begin_children);
+                    }
+
+                    xmlString += parseTree(children, text);
+
+                    // Extract text after children
+                    const end_children = children[children.length-1].end;
+                    if(end_children < currentAnno.end){
+                        xmlString += text.substring(end_children,currentAnno.end);
+                    }
+                } else { 
+                    xmlString += text.substring(currentAnno.begin,currentAnno.end);
+                }
+                xmlString += "</"+currentType+">"
+            }
+            lastEnd = currentAnno.end;
+        }
+    }
+    return xmlString;
+}
+
+/**
+ * Create an xml string from all features of an annotation
+ * 
+ * @param {*} anno 
+ */
+function createFeaturesAsXMLString(anno) {
+
+    let annoString = "";
+
+    for (let feat in anno.features) {
+        //TODO filter  features that should not get serialized ( i currenlty dont know if there are any?)
+        let value = anno.features[feat];
+        annoString += " ";
+
+        if (value) {
+            //now if it is an array
+            if (_.isArray(value)) {
+                //it is either an array of primitives or an array of references
+                if (value[0] && _.isObject(value[0])) {
+                    //it is an array of objects
+                    annoString += feat + '="';
+                    for (let i = 0; i < value.length; i++) {
+                        annoString += "#" + value[i].xmlId + " ";
+                    }
+                    annoString.trim();
+                    annoString += '"';
+                }
+                else {
+                    //it is an array of primitives, we just add those, separated by spaces
+                    annoString += feat + '="';
+                    for (let i = 0; i < value.length; i++) {
+                        annoString += _.escape(value[i]) + " ";
+                    }
+                    annoString.trim();
+                    annoString += '"';
+
+                }
+            }
+            else {
+
+                //now it is either an object or a primitive
+                if (_.isObject(value)) {
+                    //add the reference to the xmlID
+                    annoString += feat + '="';
+                    annoString += "#" + value.xmlId;
+                    annoString += '"';
+
+                }
+                else {
+                    //just a primitive
+                    //add the reference to the xmlID
+                    annoString += feat + '="';
+                    annoString += _.escape(value);
+                    annoString += '"';
+                }
             }
         }
 
     }
-};
+    annoString = annoString.trim();
+
+    return annoString;
+}
+
+/**
+ * Convert TEI Annotations to real annotations.
+ * 
+ * @param {*} annotations 
+ */
+function convertAnnotations(annotations) {
+    for (let i = 0; i < annotations.length; i++) {
+        let teiAnno = annotations[i];
+        //we skip the document annotation!
+        if (teiAnno.type === "de.uniwue.kalimachos.coref.type.TeiType") {
+            teiAnno.type = teiAnno.features.TagName.trim();
+            delete teiAnno.features.TagName;
+            //and all features!
+            let featArr = teiAnno.features["Attributes"].split("##");
+            for (let j = 0; j < featArr.length; j++) {
+                let featName = featArr[j].split("=")[0].trim();
+                let value = featArr[j].split("=")[1];
+                if (value) {
+                    value = value.trim();
+                }
+                if (featName && value && featName !== "null" && value !== "null"){
+                    teiAnno.features[featName] = value;
+                }
+            }
+            delete teiAnno.features["Attributes"];
+        }
+    }
+    return annotations;
+}
