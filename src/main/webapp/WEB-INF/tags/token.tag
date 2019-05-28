@@ -33,7 +33,7 @@
 	</span>
 	</c:when>
 	<c:otherwise>
-	<span class="line-fragment ${token.getAnnotationsString()}'/>">
+	<span class="line-fragment ${token.getAnnotationsString()}">
 		<c:out value="${token.getContent()}"/>
 	</span>
 	</c:otherwise>
