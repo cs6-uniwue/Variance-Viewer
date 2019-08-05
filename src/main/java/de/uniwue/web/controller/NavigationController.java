@@ -122,7 +122,9 @@ public class NavigationController {
 				} else {
 					// Interpret as plain text
 					String content1 = new String(file1.getBytes(), "UTF-8");
+					content1 = content1.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 					String content2 = new String(file2.getBytes(), "UTF-8");
+					content2 = content2.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 					List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
 
 					model.addAttribute("format", "txt");

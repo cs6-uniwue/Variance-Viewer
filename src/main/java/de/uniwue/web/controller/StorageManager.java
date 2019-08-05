@@ -14,7 +14,10 @@ public class StorageManager {
 	public static String getSettings(MultipartFile settingsFile, ServletContext servletContext) {
 		if (!settingsFile.isEmpty())
 			try {
-				return new String(settingsFile.getBytes(), "UTF-8");
+				String settingsString = new String(settingsFile.getBytes(), "UTF-8");
+				settingsString = settingsString.replaceAll("\\r\\n", "\n");
+				settingsString = settingsString.replaceAll("\\r", "\n");
+				return settingsString;	
 			} catch (IOException e2) {
 				// punctuationFile is faulty
 				System.err.println("Settings file is faulty. Fallback to default.");
@@ -27,7 +30,11 @@ public class StorageManager {
 		try {
 			String path = servletContext.getRealPath("WEB-INF" + File.separator + "defaults.txt");
 			byte[] encoded = Files.readAllBytes(Paths.get(path));
-			return new String(encoded, "UTF-8");
+			// Normalize line endings
+			String settingsString = new String(encoded, "UTF-8");
+			settingsString = settingsString.replaceAll("\\r\\n", "\n");
+			settingsString = settingsString.replaceAll("\\r", "\n");
+			return settingsString;	
 		} catch (IOException e) {
 			// default file is empty or faulty
 			System.err.println("Default settings file could not be found or is faulty. Fallback to empty.");

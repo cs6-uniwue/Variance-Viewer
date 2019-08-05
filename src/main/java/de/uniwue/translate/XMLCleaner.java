@@ -44,6 +44,8 @@ public class XMLCleaner {
 		// Remove Processing Instructions <?*?>
 		// (Included in Athen TEI String but not in annotations to Athen TEI)
 		String cleanXML = xmlString.replaceAll("<\\?(?:[^<>])*\\?>", "");
+		cleanXML = cleanXML.replaceAll("\\r\\n", "\n");
+		cleanXML = cleanXML.replaceAll("\\r", "\n");
 
 		// Remove comments <!--.*-->
 		cleanXML = cleanXML.replaceAll("<!--.*-->", "");
