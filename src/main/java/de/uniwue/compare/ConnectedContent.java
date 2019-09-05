@@ -6,6 +6,11 @@ import java.util.LinkedList;
 
 import de.uniwue.compare.token.Token;
 
+/**
+ * Connection between original and revised tokens.
+ * Tokens are typically considered connected if they are equal or reference
+ * the "same" text with changes inside
+ */
 public class ConnectedContent {
 	private LinkedList<Token> original, revised;
 	private final ContentType contentType;
