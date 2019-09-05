@@ -2,29 +2,25 @@ package de.uniwue.compare;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import org.json.simple.JSONObject;
+import java.util.stream.Collectors;
 
 import de.uniwue.wa.server.editor.AnnotationWrapper;
 
+/**
+ * Document annotations of TEI documents.
+ * Annotations in TEI documents include all Tags in the original TEI xml,
+ * with pointer to Text inside the extracted text content.
+ * e.g. 
+ * <p rend="xxl">Text</p>
+ * =>
+ * Annotation{begin:0,end:4,type:p,features:{rend:xxl}}
+ */
 public class Annotation {
 
-	private int begin, end;
-	private String type;
-	private Map<String, String> features;
+	private final int begin, end;
+	private final String type;
+	private final Map<String, String> features;
 
-	public Annotation(JSONObject json) {
-		this.begin = (int) json.get("begin");
-		this.end = (int) json.get("end");
-		this.type = (String) json.get("type");
-
-		features = new HashMap<String, String>();
-		JSONObject featuresJSON = (JSONObject) json.get("features");
-		if (featuresJSON != null)
-			for (Object key : featuresJSON.keySet())
-				features.put((String) key, (String) featuresJSON.get(key));
-	}
-	
 	public Annotation(AnnotationWrapper annotationWrapper) {
 		this.begin = (int) annotationWrapper.getBegin();
 		this.end = (int) annotationWrapper.getEnd();
@@ -34,11 +30,6 @@ public class Annotation {
 		
 		for (String key : annotationWrapper.getFeatures().keySet())
 			features.put(key, annotationWrapper.getFeatures().get(key).toString());
-	}
-	public Annotation(int begin, int end, String type, Map<String, String> features) {
-		this.begin = begin;
-		this.end = end;
-		this.features = features;
 	}
 
 	public int getBegin() {
@@ -85,7 +76,9 @@ public class Annotation {
 	
 	@Override
 	public String toString() {
-		return "{begin:"+begin+",end:"+end+",type:"+type+",features:[..]}";
+		String featureString = features.entrySet().stream().map(e -> e.getKey()+":"+e.getValue())
+				.collect(Collectors.joining(","));
+		return "Annotation{begin:"+begin+",end:"+end+",type:"+type+",features:{"+featureString+"}}";
 	}
 
 }
