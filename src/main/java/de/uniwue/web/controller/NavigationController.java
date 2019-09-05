@@ -42,7 +42,7 @@ public class NavigationController {
 	@Autowired
 	ServletContext servletContext;
 	List<VarianceType> outputVarianceTypes = Arrays.asList(VarianceType.CONTENT, VarianceType.ABBREVIATION,
-			VarianceType.GRAPHEMICS, VarianceType.NONE, VarianceType.PARATEXT, VarianceType.PUNCTUATION,
+			VarianceType.GRAPHEMICS, VarianceType.NONE, VarianceType.PUNCTUATION,
 			VarianceType.TYPOGRAPHY);
 
 	@RequestMapping(value = "/")

@@ -17,9 +17,8 @@ public class VarianceClassifier {
 	 * Separation -> Punctuation -> (else) Content
 	 * 
 	 * @param content           Token to classify
-	 * @param type              ContentType of the variance type (preferably INSERT
-	 *                          or DELETE. CHANGE will be handled like INSERT/DELETE
-	 *                          and EQUAL will not be set to VarianceType NONE)
+	 * @param type              ContentType of the variance type (INSERT or DELETE. 
+	 * 							Every other type will result in VarianceType NONE)
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the token
 	 */
@@ -45,7 +44,7 @@ public class VarianceClassifier {
 	 * 
 	 * @param original          Token from the original text
 	 * @param revised           Token from the revised text
-	 * @param type              Content type (Equal, Insert, Delete, Change)
+	 * @param type              Content type (EQUAL, INSERT, DELETE, CHANGE)
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the tuple of tokens
 	 */

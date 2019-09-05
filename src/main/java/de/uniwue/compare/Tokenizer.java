@@ -33,28 +33,18 @@ public class Tokenizer {
 				final String line = tokenLines.next();
 				// Add all tokens in each line
 				if (!line.equals(""))
-					tokenTexts.addAll(Arrays.asList(line.split("((?<= )|(?= ))")));
+					tokenTexts.addAll(Arrays.asList(line.split("((?<="+SpecialCharacter.SPACES_REGEX+")|(?="+SpecialCharacter.SPACES_REGEX+"))")));
 
 				// Add line separators between lines
-				if (tokenLines.hasNext()) {
-					// Keep char count in tact while adding line separator to last token
-					if (tokenTexts.size() > 0) {
-						String lastToken = "";
-						while (!tokenTexts.isEmpty() && tokenTexts.getLast().equals(" "))
-							lastToken += tokenTexts.removeLast();
-						final String tokenText = !tokenTexts.isEmpty() ? tokenTexts.removeLast() : "";
-						tokenTexts.add(tokenText + lastToken + System.lineSeparator());
-					} else {
-						tokenTexts.add(System.lineSeparator());
-					}
-				}
+				if (tokenLines.hasNext())
+					tokenTexts.add(System.lineSeparator());
 			}
 
 			// Convert string tokens to token objects
 			int pointer = 0;
 			for (String tokenText : tokenTexts) {
-				if (tokenText.equals(" ")) // Spaces
-					pointer++;
+				if (tokenText.matches(SpecialCharacter.SPACES_REGEX+"+"))
+					pointer += tokenText.length();
 				else
 					tokens.add(new Token(pointer, pointer += tokenText.length(), tokenText, contentTag));
 			}
