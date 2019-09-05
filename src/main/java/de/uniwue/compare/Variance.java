@@ -38,7 +38,10 @@ public class Variance {
 			return false;
 
 		Variance other = (Variance) obj;
-		if ((name == null && other.name != null) || !name.equals(other.name))
+		if (name == null) {
+			if(other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
 			return false;
 
 		if (type != other.type)

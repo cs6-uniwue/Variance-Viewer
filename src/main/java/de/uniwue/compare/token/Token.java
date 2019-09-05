@@ -7,6 +7,15 @@ import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+/**
+ * Token class to represent the smallest unit in a text to compare.
+ * A token is considered to be any text separated by whitespace.
+ * Tokens are represented by their position in the text, its content, 
+ * possible annotations and in which contentTag they appear in.
+ * (Every token in PLAINTEXT has the same contentTag)
+ * 
+ * Contents can be highlighted to represent changes inside the token.
+ */
 public class Token {
 
 	protected int begin, end;
@@ -123,27 +132,17 @@ public class Token {
 
 	@Override
 	public String toString() {
-		String toString = "[\'" + content + "\'," + begin + "," + end + ","+ contentTag +",[";
-		int annotationCount = 0;
-		int annotationsSize = annotations.size();
-		for (String annotation : annotations) {
-			annotationCount++;
-			toString += annotation;
-			if (annotationCount < annotationsSize)
-				toString += ",";
-		}
-		toString += "]]";
-		return toString;
+		return String.format("['%s',%d,%d,%s,[%s]]",
+							content, begin, end, contentTag, String.join(",", annotations));
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
+		if (obj == null || getClass() != obj.getClass())
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+
 		Token other = (Token) obj;
 		if(!other.contentTag.contentEquals(contentTag)) 
 			return false;
@@ -152,6 +151,7 @@ public class Token {
 				return false;
 		} else if (!annotations.equals(other.annotations))
 			return false;
+
 		if (content == null) {
 			if (other.content != null)
 				return false;

@@ -35,7 +35,6 @@ import de.uniwue.translate.TEIToAthenConverter;
 import de.uniwue.translate.XMLCleaner;
 import de.uniwue.wa.server.editor.TextAnnotationStruct;
 import de.uniwue.web.view.LineCreator;
-import difflib.PatchFailedException;
 
 @Controller
 public class NavigationController {
@@ -144,8 +143,6 @@ public class NavigationController {
 				model.addAttribute("document2type", document2Type);
 				model.addAttribute("externalCSS", settings.getExternalCss());
 			} catch (IOException e1) {
-				return "redirect:/404";
-			} catch (PatchFailedException e) {
 				return "redirect:/404";
 			}
 

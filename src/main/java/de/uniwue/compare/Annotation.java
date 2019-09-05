@@ -13,7 +13,7 @@ import de.uniwue.wa.server.editor.AnnotationWrapper;
  * e.g. 
  * <p rend="xxl">Text</p>
  * =>
- * Annotation{begin:0,end:4,type:p,features:{rend:xxl}}
+ * Annotation [begin:0,end:4,type:p,features:{rend:xxl}]
  */
 public class Annotation {
 
@@ -78,7 +78,7 @@ public class Annotation {
 	public String toString() {
 		String featureString = features.entrySet().stream().map(e -> e.getKey()+":"+e.getValue())
 				.collect(Collectors.joining(","));
-		return "Annotation{begin:"+begin+",end:"+end+",type:"+type+",features:{"+featureString+"}}";
+		return "[begin:"+begin+",end:"+end+",type:"+type+",features:{"+featureString+"}]";
 	}
 
 }
