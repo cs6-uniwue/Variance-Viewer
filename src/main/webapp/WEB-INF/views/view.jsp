@@ -46,8 +46,9 @@
 						<div class="line-nr"><c:out value="${line.getLineNr()}"></c:out></div>
 						<div class="line-content">
 						<c:forEach items="${line.getContent()}" var="content">
-							<t:token token="${content}" />
+							<t:token token="${content}"/>
 						</c:forEach>
+						&nbsp;
 						</div>
 					</div>
 				</c:forEach>
@@ -60,6 +61,7 @@
 						<c:forEach items="${line.getContent()}" var="content">
 							<t:token token="${content}" />
 						</c:forEach>
+						&nbsp;
 						</div>
 					</div>
 				</c:forEach>

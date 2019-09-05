@@ -1,7 +1,9 @@
 package de.uniwue.web.view;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,82 +18,100 @@ public class LineCreator {
 
 	public static List<ConnectedLines> patch(List<ConnectedContent> content) {
 		List<ConnectedLines> lines = new LinkedList<ConnectedLines>();
-
-		ConnectedLines connectedLines = new ConnectedLines();
+		
+		ConnectedLines connectedLines = new ConnectedLines(0, 0);
 		lines.add(connectedLines);
-		Line originalLine = new Line(1);
-		Line revisedLine = new Line(1);
-		connectedLines.addOriginalLines(originalLine);
-		connectedLines.addRevisedLines(revisedLine);
 
+		boolean singleEndedWithNewLine = false;
+		
 		for (ConnectedContent connectedContent : content) {
 			VarianceType varianceType = connectedContent.getVarianceType();
+		
 			switch (connectedContent.getContentType()) {
 			case INSERT:
 				for (Token token : connectedContent.getRevised()) {
 					String tokenContent = token.getContent();
+
 					if (tokenContent.contains(System.lineSeparator())) {
-						revisedLine = splitToken(token, varianceType, connectedLines, revisedLine, false);
-					} else
-						revisedLine
-								.addContent(new Content(token, ContentType.INSERT, varianceType, token.getHighlight()));
+						splitToken(token, varianceType, connectedLines, false);
+					} else {
+						connectedLines.addRevisedContent(new Content(token, ContentType.INSERT, varianceType, token.getHighlight()));
+					}
+					singleEndedWithNewLine = token.getContent().endsWith(System.lineSeparator());
 				}
 				break;
 			case DELETE:
 				for (Token token : connectedContent.getOriginal()) {
 					String tokenContent = token.getContent();
+
 					if (tokenContent.contains(System.lineSeparator())) {
-						originalLine = splitToken(token, varianceType, connectedLines, originalLine, true);
-					} else
-						originalLine
-								.addContent(new Content(token, ContentType.DELETE, varianceType, token.getHighlight()));
+						splitToken(token, varianceType, connectedLines, true);
+					} else {
+						connectedLines.addOriginalContent(new Content(token, ContentType.DELETE, varianceType, token.getHighlight()));
+					}
+					singleEndedWithNewLine = token.getContent().endsWith(System.lineSeparator());
 				}
 				break;
 			case CHANGE:
+				if (singleEndedWithNewLine) {
+					int lastOrigLineNr = connectedLines.getCurOriginalLineNr();
+					int lastRevLineNr = connectedLines.getCurRevisedLineNr();
+					lines.add(connectedLines = new ConnectedLines(lastOrigLineNr, lastRevLineNr));
+					singleEndedWithNewLine = false;
+				}
+
 				for (Token token : connectedContent.getOriginal()) {
 					String tokenContent = token.getContent();
+					
 					if (tokenContent.contains(System.lineSeparator())) {
-						originalLine = splitToken(token, varianceType, connectedLines, originalLine, true);
-					} else
-						originalLine
-								.addContent(new Content(token, ContentType.CHANGE, varianceType, token.getHighlight()));
+						splitToken(token, varianceType, connectedLines, true);
+					} else {
+						connectedLines.addOriginalContent(new Content(token, ContentType.CHANGE, varianceType, token.getHighlight()));
+					}
 				}
 				for (Token token : connectedContent.getRevised()) {
 					String tokenContent = token.getContent();
+
 					if (tokenContent.contains(System.lineSeparator())) {
-						revisedLine = splitToken(token, varianceType, connectedLines, revisedLine, false);
-					} else
-						revisedLine
-								.addContent(new Content(token, ContentType.CHANGE, varianceType, token.getHighlight()));
+						splitToken(token, varianceType, connectedLines, false);
+					} else {
+						connectedLines.addRevisedContent(new Content(token, ContentType.CHANGE, varianceType, token.getHighlight()));
+					}
 				}
 				break;
 			case EQUAL:
+				if (singleEndedWithNewLine) {
+					int lastOrigLineNr = connectedLines.getCurOriginalLineNr();
+					int lastRevLineNr = connectedLines.getCurRevisedLineNr();
+					lines.add(connectedLines = new ConnectedLines(lastOrigLineNr, lastRevLineNr));
+					singleEndedWithNewLine = false;
+				}
+				
 				for (Token token : connectedContent.getOriginal()) {
 					String tokenContent = token.getContent();
+					
 					if (tokenContent.contains(System.lineSeparator())) {
 						int begin = token.getBegin();
 						for (String contentPart : tokenContent.split(TOKENSPLIT)) {
 							Token tokenPart = new Token(begin, begin + contentPart.length(), contentPart, 
 									token.getContentTag(), token.getAnnotations());
 							begin += contentPart.length();
-							originalLine.addContent(
-									new Content(tokenPart, ContentType.EQUAL, varianceType, null));
-							revisedLine.addContent(
-									new Content(tokenPart, ContentType.EQUAL, varianceType, null));
+							connectedLines.addOriginalContent(new Content(tokenPart, ContentType.EQUAL, varianceType, null));
+
+							connectedLines.addRevisedContent(new Content(tokenPart, ContentType.EQUAL, varianceType, null));
 							if (contentPart.equals(System.lineSeparator())) {
-								connectedLines = new ConnectedLines();
-								lines.add(connectedLines);
-								originalLine = new Line(originalLine.getLineNr() + 1);
-								revisedLine = new Line(revisedLine.getLineNr() + 1);
-								connectedLines.addRevisedLines(revisedLine);
-								connectedLines.addOriginalLines(originalLine);
+								connectedLines.endOriginalLine();
+								connectedLines.endRevisedLine();
 							}
 						}
 					} else {
-						originalLine
-								.addContent(new Content(token, ContentType.EQUAL, varianceType, null));
-						revisedLine
-								.addContent(new Content(token, ContentType.EQUAL, varianceType, null));
+						connectedLines.addOriginalContent(new Content(token, ContentType.EQUAL, varianceType, null));
+						connectedLines.addRevisedContent(new Content(token, ContentType.EQUAL, varianceType, null));
+					}
+					if (token.getContent().endsWith(System.lineSeparator())) {
+						int lastOrigLineNr = connectedLines.getCurOriginalLineNr();
+						int lastRevLineNr = connectedLines.getCurRevisedLineNr();
+						lines.add(connectedLines = new ConnectedLines(lastOrigLineNr, lastRevLineNr));
 					}
 				}
 				break;
@@ -101,14 +121,17 @@ public class LineCreator {
 		return lines;
 	}
 
-	private static Line splitToken(Token token, VarianceType varianceType, ConnectedLines connectedLines,
-			Line currentLine, boolean isOriginalLine) {
+	private static void splitToken(Token token, VarianceType varianceType, ConnectedLines connectedLines,
+			boolean isOriginalLine) {
 		int begin = token.getBegin();
 
 		Deque<long[]> highlightQueue = new ArrayDeque<>(token.getHighlight());
 
 		long inTokenPos = 0;
-		for (String contentPart : token.getContent().split(TOKENSPLIT)) {
+		Iterator<String> lineIter = Arrays.asList(token.getContent().split(TOKENSPLIT)).iterator();
+		
+		while (lineIter.hasNext()) {
+			String contentPart = lineIter.next();
 			int partLength = contentPart.length();
 			Token tokenPart = new Token(begin, begin + partLength, contentPart, token.getContentTag(), token.getAnnotations());
 			long intTokenEnd = inTokenPos+partLength;
@@ -127,18 +150,20 @@ public class LineCreator {
 				highlight.add(highlightPart);
 			}
 
-			currentLine.addContent(new Content(tokenPart, ContentType.CHANGE, varianceType, highlight));
+			if (isOriginalLine) {
+				connectedLines.addOriginalContent(new Content(tokenPart, ContentType.CHANGE, varianceType, highlight));
+			} else {
+				connectedLines.addRevisedContent(new Content(tokenPart, ContentType.CHANGE, varianceType, highlight));
+			}
 			if (contentPart.equals(System.lineSeparator())) {
-				currentLine = new Line(currentLine.getLineNr() + 1);
 				if (isOriginalLine) {
-					connectedLines.addOriginalLines(currentLine);
+					connectedLines.endOriginalLine();
 				} else {
-					connectedLines.addRevisedLines(currentLine);
+					connectedLines.endRevisedLine();
 				}
 			}
 			begin += partLength;
 			inTokenPos = intTokenEnd;
 		}
-		return currentLine;
 	}
 }
