@@ -3,8 +3,6 @@ package de.uniwue.compare;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import de.uniwue.compare.token.AnnotationToken;
@@ -44,8 +42,7 @@ public class DiffCreator {
 			final int currentRevisedPosition = revised.getPosition();
 			TYPE type = delta.getType();
 
-			// Get equal content in between changes (Delta only lists changes not equal
-			// content)
+			// Get equal content in between changes (Delta only lists changes not equal content)
 			if (currentOriginalPosition > prevOriginalEndPosition + 1
 					|| currentRevisedPosition > prevRevisedEndPosition + 1) {
 				List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
@@ -106,9 +103,9 @@ public class DiffCreator {
 
 				// Compare normalized tokens to find connected diffs that can be equalized by
 				// Punctuation, Graphemics etc.
-				LinkedList<TextToken> originalTestTokens = normalize(originalTokens, normalizerStorage).stream()
+				LinkedList<TextToken> originalTestTokens = VarianceClassifier.normalize(originalTokens, normalizerStorage).stream()
 						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
-				LinkedList<TextToken> revisedTestTokens = normalize(revisedTokens, normalizerStorage).stream()
+				LinkedList<TextToken> revisedTestTokens = VarianceClassifier.normalize(revisedTokens, normalizerStorage).stream()
 						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
 
 				Patch<TextToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
@@ -130,15 +127,9 @@ public class DiffCreator {
 
 							if (originalTest.getContent().length() > 0 && revisedTest.getContent().length() > 0) {
 								// Change
-								VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest,
+								VarianceType varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest,
 										ContentType.CHANGE, normalizerStorage);
-								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-										&& !varianceType.equals(VarianceType.ABBREVIATION))
-									highlightTokens(originalTest, revisedTest);
-								else {
-									originalTest.highlightEverything();
-									revisedTest.highlightEverything();
-								}
+								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
 								if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
@@ -154,20 +145,14 @@ public class DiffCreator {
 								// Delete or Insert
 								VarianceType varianceType = null;
 								if (originalTest.getContent().length() > 0) {
-									varianceType = getVarianceTypeSingle(originalTest, ContentType.INSERT,
+									varianceType = VarianceClassifier.getVarianceTypeSingle(originalTest, ContentType.INSERT,
 											normalizerStorage);
 								} else if (revisedTest.getContent().length() > 0) {
-									varianceType = getVarianceTypeSingle(revisedTest, ContentType.DELETE,
+									varianceType = VarianceClassifier.getVarianceTypeSingle(revisedTest, ContentType.DELETE,
 											normalizerStorage);
 								}
 
-								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-										&& !varianceType.equals(VarianceType.ABBREVIATION))
-									highlightTokens(originalTest, revisedTest);
-								else {
-									originalTest.highlightEverything();
-									revisedTest.highlightEverything();
-								}
+								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
 								if (originalTest.getContent().length() > 0) {
@@ -238,15 +223,9 @@ public class DiffCreator {
 					for (int i = 0; i < equalTokensOriginal.size(); i++) {
 						Token originalTest = equalTokensOriginal.get(i);
 						Token revisedTest = equalTokensRevised.get(i);
-						VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
+						VarianceType varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
 								normalizerStorage);
-						if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-								&& !varianceType.equals(VarianceType.ABBREVIATION))
-							highlightTokens(originalTest, revisedTest);
-						else {
-							originalTest.highlightEverything();
-							revisedTest.highlightEverything();
-						}
+						highlightTokens(originalTest, revisedTest, varianceType);
 
 						// Add to last content (if of same type) or create new content
 						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
@@ -267,8 +246,7 @@ public class DiffCreator {
 			prevOriginalEndPosition = original.last();
 			prevRevisedEndPosition = revised.last();
 		}
-		// Add equals that are the end of the document (Delta only lists changes not
-		// equal content)
+		// Add equals that are the end of the document (Delta only lists changes not equal content)
 		if (originalLines.size() > prevOriginalEndPosition + 1) {
 			List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
 					originalLines.size());
@@ -395,7 +373,7 @@ public class DiffCreator {
 		for (Token token : tokens) {
 			token.highlightEverything();
 			VarianceType curVariance = token instanceof AnnotationToken ? VarianceType.TYPOGRAPHY
-					: getVarianceTypeSingle(token, curContentType, normalizerStorage);
+					: VarianceClassifier.getVarianceTypeSingle(token, curContentType, normalizerStorage);
 			if (curContent == null || !curContent.getContentType().equals(curContentType)
 					|| !curContent.getVarianceType().equals(curVariance)) {
 				curContent = new ConnectedContent(curContentType);
@@ -418,203 +396,32 @@ public class DiffCreator {
 	 * @param token1 Token one to highlight
 	 * @param token2 Token two to highlight
 	 */
-	private static void highlightTokens(Token token1, Token token2) {
-		List<long[]> highlightToken1 = new LinkedList<>();
-		List<long[]> highlightToken2 = new LinkedList<>();
+	private static void highlightTokens(Token token1, Token token2, VarianceType varianceType) {
+		if (!varianceType.equals(VarianceType.TYPOGRAPHY)
+				&& !varianceType.equals(VarianceType.ABBREVIATION)) {
 
-		Patch<String> annotationPatch = DiffUtils.diff(Arrays.asList(token1.getContent().split("(?!^)")),
-				Arrays.asList(token2.getContent().split("(?!^)")));
-		for (Delta<String> delta : annotationPatch.getDeltas()) {
-			TYPE type = delta.getType();
-			if (type.equals(TYPE.INSERT) || type.equals(TYPE.CHANGE)) {
-				Chunk<String> insert = delta.getRevised();
-				highlightToken2.add(new long[] { insert.getPosition(), insert.last() + 1 });
+			List<long[]> highlightToken1 = new LinkedList<>();
+			List<long[]> highlightToken2 = new LinkedList<>();
+
+			Patch<String> annotationPatch = DiffUtils.diff(Arrays.asList(token1.getContent().split("(?!^)")),
+					Arrays.asList(token2.getContent().split("(?!^)")));
+			for (Delta<String> delta : annotationPatch.getDeltas()) {
+				TYPE type = delta.getType();
+				if (type.equals(TYPE.INSERT) || type.equals(TYPE.CHANGE)) {
+					Chunk<String> insert = delta.getRevised();
+					highlightToken2.add(new long[] { insert.getPosition(), insert.last() + 1 });
+				}
+
+				if (type.equals(TYPE.DELETE) || type.equals(TYPE.CHANGE)) {
+					Chunk<String> delete = delta.getOriginal();
+					highlightToken1.add(new long[] { delete.getPosition(), delete.last() + 1 });
+				}
 			}
-
-			if (type.equals(TYPE.DELETE) || type.equals(TYPE.CHANGE)) {
-				Chunk<String> delete = delta.getOriginal();
-				highlightToken1.add(new long[] { delete.getPosition(), delete.last() + 1 });
-			}
+			token1.setHighlight(highlightToken1);
+			token2.setHighlight(highlightToken2);
+		} else {
+			token1.highlightEverything();
+			token2.highlightEverything();
 		}
-		token1.setHighlight(highlightToken1);
-		token2.setHighlight(highlightToken2);
-	}
-
-	/**
-	 * Classify the changes in an insert or delete token. Normalizes the token to
-	 * identify the variance type step by step.
-	 * 
-	 * Separation -> Punctuation -> (else) Content
-	 * 
-	 * @param content           Token to classify
-	 * @param type              ContentType of the variance type (preferably INSERT
-	 *                          or DELETE. CHANGE will be handled like INSERT/DELETE
-	 *                          and EQUAL will not be set to VarianceType NONE)
-	 * @param normalizerStorage Normalize settings and rules
-	 * @return Variance Type of the token
-	 */
-	private static VarianceType getVarianceTypeSingle(Token content, ContentType type, Settings normalizerStorage) {
-		if (type.equals(ContentType.INSERT) || type.equals(ContentType.DELETE) || type.equals(ContentType.CHANGE)) {
-			String contentWork = normalizeLineSEPARATION(content.getContent());
-			if (contentWork.equals(""))
-				return VarianceType.SEPARATION;
-			else if (removePunctuation(contentWork, normalizerStorage).equals(""))
-				return VarianceType.PUNCTUATION;
-			else
-				return VarianceType.CONTENT;
-		}
-		return VarianceType.NONE;
-	}
-
-	/**
-	 * Classify the changes in two tokens to variance types. Normalizes the tokens
-	 * to identify the variance types step by step.
-	 * 
-	 * Equal -> Separation -> Typography -> Punctuation -> Graphemics ->
-	 * Abbreviations -> (else) Content
-	 * 
-	 * @param original          Token from the original text
-	 * @param revised           Token from the revised text
-	 * @param type              Content type (Equal, Insert, Delete, Change)
-	 * @param normalizerStorage Normalize settings and rules
-	 * @return Variance Type of the tuple of tokens
-	 */
-	private static VarianceType getVarianceTypeTouple(Token original, Token revised, ContentType type,
-			Settings normalizerStorage) {
-		if (type.equals(ContentType.EQUAL))
-			return VarianceType.NONE;
-
-		String originalWork = normalizeLineSEPARATION(original.getContent());
-		String revisedWork = normalizeLineSEPARATION(revised.getContent());
-
-		// Test for Separation
-		if (originalWork.equals(revisedWork) && original.getAnnotations().equals(revised.getAnnotations()))
-			return VarianceType.SEPARATION;
-
-		// Test for Typography
-		if (originalWork.equals(revisedWork))
-			return VarianceType.TYPOGRAPHY;
-
-		// Test for Punctuation
-		if (removePunctuation(originalWork, normalizerStorage)
-				.equals(removePunctuation(revisedWork, normalizerStorage)))
-			return VarianceType.PUNCTUATION;
-
-		// Test for Graphemics
-		if (normalizeGraphemics(originalWork, normalizerStorage)
-				.equals(normalizeGraphemics(revisedWork, normalizerStorage)))
-			return VarianceType.GRAPHEMICS;
-
-		// Test for Abbreviations
-		if (normalizeAbbreviations(originalWork, normalizerStorage)
-				.equals(normalizeAbbreviations(revisedWork, normalizerStorage)))
-			return VarianceType.ABBREVIATION;
-
-		return VarianceType.CONTENT;
-	}
-
-	/**
-	 * Normalize tokens to check for different variance types. E.g. "Test" "Test."
-	 * can both be normalized to "Test", which helps to identify underlying variance
-	 * types that can be classified. (Punctuation in this case)
-	 * 
-	 * @param list              list of tokens to normalize
-	 * @param normalizerStorage normalize settings (Config file)
-	 * @return List of normalized tokens
-	 */
-	private static LinkedList<Token> normalize(List<Token> list, Settings normalizerStorage) {
-		LinkedList<Token> normalized = new LinkedList<Token>();
-
-		for (Token token : list) {
-			String content = normalize(token.getContent(), normalizerStorage);
-			normalized.add(new Token(token.getBegin(), token.getEnd(), content, token.getContentTag(), token.getAnnotations()));
-		}
-		return normalized;
-	}
-
-	/**
-	 * Normalize a token to check for different variance types. E.g. "Test" "Test."
-	 * can both be normalized to "Test", which helps to identify underlying variance
-	 * types that can be classified. (Punctuation in this case)
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings (Config file)
-	 * @return normalized token
-	 */
-	private static String normalize(String token, Settings normalizerStorage) {
-		return normalizeGraphemics(
-				removePunctuation(normalizeAbbreviations(normalizeLineSEPARATION(token), normalizerStorage),
-						normalizerStorage),
-				normalizerStorage);
-	}
-
-	/**
-	 * Normalize a token to check for line separation. E.g. "Test\n" "Test" can be
-	 * normalized to "Test", which helps to identify a line separation variance
-	 * type.
-	 * 
-	 * @param token token to normalize
-	 * @return normalized token
-	 */
-	private static String normalizeLineSEPARATION(String token) {
-		return token.replace(System.lineSeparator(), "");
-	}
-
-	/**
-	 * Normalize a token to check for punctuations. E.g. "Test." "Test" can be
-	 * normalized to "Test" (if given "." as punctuation rule), which helps to
-	 * identify a punctuation variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all punctuations (Config
-	 *                          file)
-	 * @return normalized token
-	 */
-	private static String removePunctuation(String token, Settings normalizerStorage) {
-		String punctuations = "";
-		for (String punctuation : normalizerStorage.getPunctuation())
-			punctuations += punctuation;
-		if (punctuations.length() > 0)
-			return token.replaceAll("[" + Pattern.quote(punctuations) + "]", "");
-		else
-			return token;
-	}
-
-	/**
-	 * Normalize a token to check for graphemic changes. E.g. "TestÄ" "TestAe" can
-	 * be normalized to "TestAe" (if given the graphemic rule "Ä->Ae"), which helps
-	 * to identify a graphemic variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all graphemic rules (Config
-	 *                          file)
-	 * @return normalized token
-	 */
-	private static String normalizeGraphemics(String token, Settings normalizerStorage) {
-		String normalizedToken = token;
-		normalizedToken = normalizedToken.toLowerCase();
-		for (Map.Entry<String, String> touple : normalizerStorage.getGraphemes().entrySet())
-			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
-
-		return normalizedToken;
-	}
-
-	/**
-	 * Normalize a token to check for abbreviation changes. E.g. "TestEx"
-	 * "TestExample" can be normalized to "TestExample" (if given the abbreviation
-	 * rule "Ex->Example"), which helps to identify a abbreviation variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all abbreviation rules
-	 *                          (Config file)
-	 * @return normalized token
-	 */
-	private static String normalizeAbbreviations(String token, Settings normalizerStorage) {
-		String normalizedToken = token;
-		for (Map.Entry<String, String> touple : normalizerStorage.getAbbreviations().entrySet()) {
-			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
-		}
-
-		return normalizedToken;
 	}
 }
