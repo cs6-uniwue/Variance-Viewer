@@ -1,5 +1,8 @@
 package de.uniwue.compare.variance.types;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Variance with predefined types and user defined names 
  */
@@ -61,6 +64,14 @@ public class Variance {
 			return false;
 
 		return true;
+	}
+	
+	public static List<Variance> getBaseVariances() {
+		return Arrays.asList(new Variance[] {
+				new VarianceTypography("#03a9f4", 0),
+				new VarianceContent("#8bc34a",0),
+				new VarianceLineSeparation("#e0e1e0",0)
+		});
 	}
 	
 }

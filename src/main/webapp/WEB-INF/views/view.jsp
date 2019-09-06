@@ -3,6 +3,27 @@
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags"%>
 
 <t:webpage>
+	<style>
+	// Colors
+	<c:forEach items="${variancetypes}" var="variancetype">
+		.display-switches .display-switch-checkbox label.${variancetype.getName()} {
+			background: ${variancetype.getColor()}ff;
+		}
+		.lineSet .line .line-fragment.ACTIVE.${variancetype.getName()}.CHANGE .highlight {
+			background-color: ${variancetype.getColor()}ff;
+		}
+		.lineSet .line .line-fragment.ACTIVE.${variancetype.getName()}.INSERT .highlight {
+			background-color: ${variancetype.getColor()}cc;
+		}
+		.lineSet .line .line-fragment.ACTIVE.${variancetype.getName()}.DELETE .highlight {
+			background-color: ${variancetype.getColor()}cc;
+		}
+		.lineSet .line .line-fragment.ACTIVE.${variancetype.getName()} span:not(.fillerspace) {
+			background-color: ${variancetype.getColor()}77;
+		}
+	</c:forEach>
+	</style>
+
 	<article id="legend">
 		<button class="openDownload">Download</button>
 		<ul class="display-switches">
@@ -16,10 +37,10 @@
 			<c:forEach items="${variancetypes}" var="variancetype">
 			<li class="display-switch-wrapper">
 				<span class="display-switch-checkbox">
-					<input id="checkbox${variancetype}" type="checkbox" class="display-switch" data-type="${variancetype}" checked="checked">
-					<label for="checkbox${variancetype}" class="switch ${variancetype}"></label>
+					<input id="checkbox${variancetype.getName()}" type="checkbox" class="display-switch" data-type="${variancetype.getName()}" checked="checked">
+					<label for="checkbox${variancetype.getName()}" class="switch ${variancetype.getName()}"></label>
 				</span>
-				<c:out value="${variancetype}"></c:out>
+				<c:out value="${variancetype.getName()}"></c:out>
 			</li>
 			</c:forEach>
 		</ul>
@@ -99,10 +120,10 @@
 					<c:forEach items="${variancetypes}" var="variancetype">
 					<li class="display-switch-wrapper">
 						<span class="display-switch-checkbox">
-							<input id="checkbox${variancetype}" type="checkbox" class="display-switch" data-type="${variancetype}" checked="checked">
-							<label for="checkbox${variancetype}" class="switch ${variancetype}"></label>
+							<input id="checkbox${variancetype.getName()}" type="checkbox" class="display-switch" data-type="${variancetype.getName()}" checked="checked">
+							<label for="checkbox${variancetype.getName()}" class="switch ${variancetype.getName()}"></label>
 						</span>
-						<c:out value="${variancetype}"></c:out>
+						<c:out value="${variancetype.getName()}"></c:out>
 					</li>
 					</c:forEach>
 				</ul> 

@@ -29,6 +29,7 @@ import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.DocumentType;
 import de.uniwue.compare.SettingsLegacy;
+import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
@@ -136,7 +137,7 @@ public class NavigationController {
 					if (!variancetype.equals(VarianceType.NONE))
 						variancetypes.add(variancetype);
 
-				model.addAttribute("variancetypes", variancetypes);
+				model.addAttribute("variancetypes", VarianceClassifier.sortVariances(settings.getVariances()));
 				model.addAttribute("document1name", file1.getOriginalFilename());
 				model.addAttribute("document2name", file2.getOriginalFilename());
 				model.addAttribute("document1type", document1Type);

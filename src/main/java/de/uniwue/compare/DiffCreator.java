@@ -9,7 +9,7 @@ import de.uniwue.compare.token.AnnotationToken;
 import de.uniwue.compare.token.TextToken;
 import de.uniwue.compare.token.Token;
 import de.uniwue.compare.variance.VarianceClassifier;
-import de.uniwue.compare.variance.types.VarianceType;
+import de.uniwue.compare.variance.types.Variance;
 import difflib.Chunk;
 import difflib.Delta;
 import difflib.Delta.TYPE;
@@ -32,7 +32,9 @@ public class DiffCreator {
 	public static List<ConnectedContent> patch(List<? extends Token> originalLines, List<? extends Token> revisedLines,
 			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, SettingsLegacy normalizerStorage) {
 		List<ConnectedContent> content = new LinkedList<ConnectedContent>();
-
+		List<Variance> variances = VarianceClassifier.sortVariances(normalizerStorage.getVariances());
+		
+		
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
 
@@ -66,7 +68,7 @@ public class DiffCreator {
 
 					for (ConnectedContent annotationContent : annotationDiff) {
 						if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-							annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
+							annotationContent.setVarianceType("TYPOGRAPHY");
 
 						// Add to last content (if of same type) or create new content
 						if (curContent == null
@@ -93,11 +95,11 @@ public class DiffCreator {
 			switch (type) {
 			case INSERT:
 				// Add to last insert content (if of same type) or create new content
-				curContent = insert(revised, curContent, content, normalizerStorage);
+				curContent = insert(revised, revisedLines, curContent, content, variances);
 				break;
 			case DELETE:
 				// Add to last delete content (if of same type) or create new content
-				curContent = delete(original, curContent, content, normalizerStorage);
+				curContent = delete(original, originalLines, curContent, content, variances);
 				break;
 			case CHANGE:
 				LinkedList<Token> originalTokens = new LinkedList<Token>(original.getLines());
@@ -105,9 +107,9 @@ public class DiffCreator {
 
 				// Compare normalized tokens to find connected diffs that can be equalized by
 				// Punctuation, Graphemics etc.
-				LinkedList<TextToken> originalTestTokens = VarianceClassifier.normalize(originalTokens, normalizerStorage).stream()
+				LinkedList<TextToken> originalTestTokens = VarianceClassifier.normalize(originalTokens, variances).stream()
 						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
-				LinkedList<TextToken> revisedTestTokens = VarianceClassifier.normalize(revisedTokens, normalizerStorage).stream()
+				LinkedList<TextToken> revisedTestTokens = VarianceClassifier.normalize(revisedTokens, variances).stream()
 						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
 
 				Patch<TextToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
@@ -129,8 +131,8 @@ public class DiffCreator {
 
 							if (originalTest.getContent().length() > 0 && revisedTest.getContent().length() > 0) {
 								// Change
-								VarianceType varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest,
-										ContentType.CHANGE, normalizerStorage);
+								String varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest,
+										ContentType.CHANGE, variances);
 								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
@@ -144,12 +146,12 @@ public class DiffCreator {
 								}
 							} else {
 								// Delete or Insert
-								VarianceType varianceType = null;
+								String varianceType = null;
 								if (originalTest.getContent().length() > 0) {
-									varianceType = VarianceClassifier.getVarianceTypeSingle(originalTest, ContentType.INSERT,
+									varianceType = VarianceClassifier.getVarianceTypeSingle(originalTest, originalTokens, ContentType.DELETE,
 											normalizerStorage.getVariances());
 								} else if (revisedTest.getContent().length() > 0) {
-									varianceType = VarianceClassifier.getVarianceTypeSingle(revisedTest, ContentType.DELETE,
+									varianceType = VarianceClassifier.getVarianceTypeSingle(revisedTest, revisedTokens, ContentType.INSERT,
 											normalizerStorage.getVariances());
 								}
 
@@ -187,19 +189,19 @@ public class DiffCreator {
 
 					if (originalCount == 0 && revisedCount > 0) {
 						// Add to last insert content (if of same type) or create new content
-						curContent = insert(unequalTokensRevised, curContent, content, normalizerStorage);
+						curContent = insert(unequalTokensRevised, revisedLines, curContent, content, variances);
 					} else if (originalCount > 0 && revisedCount == 0) {
 						// Add to last delete content (if of same type) or create new content
-						curContent = delete(unequalTokensOriginal, curContent, content, normalizerStorage);
+						curContent = delete(unequalTokensOriginal, originalLines, curContent, content, variances);
 					} else if (originalCount > 0 && revisedCount > 0) {
 						unequalTokensOriginal.forEach(t -> t.highlightEverything());
 						unequalTokensRevised.forEach(t -> t.highlightEverything());
 
 						// Add to last content (if of same type) or create new content
 						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-								|| !curContent.getVarianceType().equals(VarianceType.CONTENT)) {
+								|| !curContent.getVarianceType().equals("CONTENT")) {
 							curContent = new ConnectedContent(unequalTokensOriginal, unequalTokensRevised,
-									ContentType.CHANGE, VarianceType.CONTENT);
+									ContentType.CHANGE, "CONTENT");
 							content.add(curContent);
 						} else {
 							curContent.addOriginal(unequalTokensOriginal);
@@ -221,8 +223,8 @@ public class DiffCreator {
 					for (int i = 0; i < equalTokensOriginal.size(); i++) {
 						Token originalTest = equalTokensOriginal.get(i);
 						Token revisedTest = equalTokensRevised.get(i);
-						VarianceType varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
-								normalizerStorage);
+						String varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
+								variances);
 						highlightTokens(originalTest, revisedTest, varianceType);
 
 						// Add to last content (if of same type) or create new content
@@ -263,7 +265,7 @@ public class DiffCreator {
 
 				for (ConnectedContent annotationContent : annotationDiff) {
 					if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-						annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
+						annotationContent.setVarianceType("TYPOGRAPHY");
 
 					// Add to last content (if of same type) or create new content
 					if (curContent == null || !curContent.getContentType().equals(annotationContent.getContentType())
@@ -300,9 +302,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent insert(Chunk<? extends Token> revised, ConnectedContent curContent,
-			List<ConnectedContent> allContent, SettingsLegacy normalizerStorage) {
-		return prosessInsertAndDelete(revised.getLines(), curContent, allContent, normalizerStorage,
+	private static ConnectedContent insert(Chunk<? extends Token> revised, List<? extends Token> revisedLines, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(revised.getLines(), revisedLines, curContent, allContent, variances,
 				ContentType.INSERT);
 	}
 
@@ -315,9 +317,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent delete(Chunk<? extends Token> original, ConnectedContent curContent,
-			List<ConnectedContent> allContent, SettingsLegacy normalizerStorage) {
-		return prosessInsertAndDelete(original.getLines(), curContent, allContent, normalizerStorage,
+	private static ConnectedContent delete(Chunk<? extends Token> original, List<? extends Token> originalDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(original.getLines(), originalDocument, curContent, allContent, variances,
 				ContentType.DELETE);
 	}
 
@@ -330,9 +332,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent insert(List<? extends Token> revised, ConnectedContent curContent,
-			List<ConnectedContent> allContent, SettingsLegacy normalizerStorage) {
-		return prosessInsertAndDelete(revised, curContent, allContent, normalizerStorage, ContentType.INSERT);
+	private static ConnectedContent insert(List<? extends Token> revised, List<? extends Token> revisedDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(revised, revisedDocument, curContent, allContent, variances, ContentType.INSERT);
 	}
 
 	/**
@@ -344,9 +346,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent delete(List<? extends Token> original, ConnectedContent curContent,
-			List<ConnectedContent> allContent, SettingsLegacy normalizerStorage) {
-		return prosessInsertAndDelete(original, curContent, allContent, normalizerStorage, ContentType.DELETE);
+	private static ConnectedContent delete(List<? extends Token> original, List<? extends Token> originalDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(original, originalDocument, curContent, allContent, variances, ContentType.DELETE);
 	}
 
 	/**
@@ -361,16 +363,16 @@ public class DiffCreator {
 	 *                          DELETE)
 	 * @return Connected content
 	 */
-	private static ConnectedContent prosessInsertAndDelete(List<? extends Token> tokens, ConnectedContent curContent,
-			List<ConnectedContent> allContent, SettingsLegacy normalizerStorage, ContentType curContentType) {
+	private static ConnectedContent prosessInsertAndDelete(List<? extends Token> tokens, List<? extends Token> document, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances, ContentType curContentType) {
 		if (!curContentType.equals(ContentType.INSERT) && !curContentType.equals(ContentType.DELETE))
 			throw new IllegalArgumentException(
 					"Expects content of type INSERT or DELETE. (Was " + curContentType + ")");
 
 		for (Token token : tokens) {
 			token.highlightEverything();
-			VarianceType curVariance = token instanceof AnnotationToken ? VarianceType.TYPOGRAPHY
-					: VarianceClassifier.getVarianceTypeSingle(token, curContentType, normalizerStorage.getVariances());
+			String curVariance = token instanceof AnnotationToken ? "TYPOGRAPHY"
+					: VarianceClassifier.getVarianceTypeSingle(token, document, curContentType, variances);
 			if (curContent == null || !curContent.getContentType().equals(curContentType)
 					|| !curContent.getVarianceType().equals(curVariance)) {
 				curContent = new ConnectedContent(curContentType, curVariance);
@@ -392,9 +394,8 @@ public class DiffCreator {
 	 * @param token1 Token one to highlight
 	 * @param token2 Token two to highlight
 	 */
-	private static void highlightTokens(Token token1, Token token2, VarianceType varianceType) {
-		if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-				&& !varianceType.equals(VarianceType.ABBREVIATION)) {
+	private static void highlightTokens(Token token1, Token token2, String varianceType) {
+		if (!varianceType.equals("TYPOGRAPHY")) {
 
 			List<long[]> highlightToken1 = new LinkedList<>();
 			List<long[]> highlightToken2 = new LinkedList<>();

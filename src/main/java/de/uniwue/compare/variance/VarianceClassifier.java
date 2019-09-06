@@ -1,5 +1,6 @@
 package de.uniwue.compare.variance;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -10,8 +11,14 @@ import de.uniwue.compare.ContentType;
 import de.uniwue.compare.SettingsLegacy;
 import de.uniwue.compare.token.Token;
 import de.uniwue.compare.variance.types.Variance;
+import de.uniwue.compare.variance.types.VarianceContent;
+import de.uniwue.compare.variance.types.VarianceDistance;
+import de.uniwue.compare.variance.types.VarianceLine;
+import de.uniwue.compare.variance.types.VarianceLineSeparation;
 import de.uniwue.compare.variance.types.VarianceMissing;
-import de.uniwue.compare.variance.types.VarianceType;
+import de.uniwue.compare.variance.types.VarianceReplacement;
+import de.uniwue.compare.variance.types.VarianceSeparation;
+import de.uniwue.compare.variance.types.VarianceTypography;
 
 public class VarianceClassifier {
 
@@ -28,26 +35,25 @@ public class VarianceClassifier {
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the token
 	 */
-	public static VarianceType getVarianceTypeSingle(Token content, ContentType type, List<Variance> varianceTypes) {
-		List<VarianceMissing> missing = varianceTypes.stream().filter(v -> v instanceof VarianceMissing)
-													.map(v -> (VarianceMissing) v).collect(Collectors.toList());
-		
+	public static String getVarianceTypeSingle(Token content, List<? extends Token> document, ContentType type, List<Variance> varianceTypes) {
 		if (type.equals(ContentType.INSERT) || type.equals(ContentType.DELETE) || type.equals(ContentType.CHANGE)) {
-			String contentWork = normalizeLineSEPARATION(content.getContent());
-			if (contentWork.equals("")) {
-				return VarianceType.LINESEPARATION;
-			} else {
-				// Check missing Variance Types
-				for(VarianceMissing m : missing) {
-					if (normalizeMissing(contentWork, m.getMissing()).equals(""))
-						return VarianceType.MISSING;
-				}
-				
-				// Fallback content
-				return VarianceType.CONTENT;
+			for (Variance var : sortVariances(varianceTypes)) {
+				String text = content.getContent();
+				if (var instanceof VarianceLineSeparation 
+						&& normalizeLineSeparation(text).equals(""))
+						return var.getName();
+
+				if (var instanceof VarianceMissing
+						&& normalizeMissing(text, ((VarianceMissing) var).getMissing()).equals(""))
+						return var.getName();
+
+				if (var instanceof VarianceContent)
+					return var.getName();
 			}
+			return null; // This should never have to be called, unless the varianceType does not contain VarianceContent
+		} else {
+			return null;
 		}
-		return VarianceType.NONE;
 	}
 
 	/**
@@ -63,38 +69,49 @@ public class VarianceClassifier {
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the tuple of tokens
 	 */
-	public static VarianceType getVarianceTypeTouple(Token original, Token revised, ContentType type,
-			SettingsLegacy normalizerStorage) {
+	public static String getVarianceTypeTouple(Token original, Token revised, ContentType type,
+			List<Variance> varianceTypes) {
 		if (type.equals(ContentType.EQUAL))
-			return VarianceType.NONE;
+			return null;
+		
+		
+		for (Variance var : sortVariances(varianceTypes)) {
+			String originalWork = original.getContent();
+			String revisedWork = revised.getContent();
 
-		String originalWork = normalizeLineSEPARATION(original.getContent());
-		String revisedWork = normalizeLineSEPARATION(revised.getContent());
+			// Test for Typography
+			if (var instanceof VarianceTypography && originalWork.equals(revisedWork))
+				return var.getName();
 
-		// Test for Separation
-		if (originalWork.equals(revisedWork) && original.getAnnotations().equals(revised.getAnnotations()))
-			return VarianceType.LINESEPARATION;
+			if (var instanceof VarianceLineSeparation 
+					&& normalizeLineSeparation(originalWork).equals(normalizeLineSeparation(revisedWork)))
+					return var.getName();
 
-		// Test for Typography
-		if (originalWork.equals(revisedWork))
-			return VarianceType.TYPOGRAPHY;
+			if (var instanceof VarianceMissing) {
+				VarianceMissing missing = (VarianceMissing) var;
+				if(normalizeMissing(originalWork, missing.getMissing()).equals(normalizeMissing(revisedWork, missing.getMissing())))
+					return var.getName();
+			}
 
-		// Test for Punctuation
-		//if (normalizeMissing(originalWork, normalizerStorage)
-		//		.equals(normalizeMissing(revisedWork, normalizerStorage)))
-		//	return VarianceType.MISSING;
+			if (var instanceof VarianceReplacement) {
+				VarianceReplacement replace = (VarianceReplacement) var;
+				if(normalizeReplace(originalWork, replace.getRules()).equals(normalizeReplace(revisedWork, replace.getRules())))
+					return var.getName();
+			}
+			
+			if (var instanceof VarianceDistance) {
+				VarianceDistance distance = (VarianceDistance ) var;
+				int worddistance = VarianceDistance.distance(originalWork, revisedWork);
+				if(distance.getDistanceMin() <= worddistance && worddistance <= distance.getDistanceMax())
+					return var.getName();
+			}
+			
+			if (var instanceof VarianceContent)
+				return var.getName();
 
-		// Test for Graphemics
-		if (normalizeGraphemics(originalWork, normalizerStorage)
-				.equals(normalizeGraphemics(revisedWork, normalizerStorage)))
-			return VarianceType.REPLACEMENT;
-
-		// Test for Abbreviations
-		if (normalizeAbbreviations(originalWork, normalizerStorage)
-				.equals(normalizeAbbreviations(revisedWork, normalizerStorage)))
-			return VarianceType.ABBREVIATION;
-
-		return VarianceType.CONTENT;
+		}
+		
+		return null;
 	}
 
 	/**
@@ -106,11 +123,11 @@ public class VarianceClassifier {
 	 * @param normalizerStorage normalize settings (Config file)
 	 * @return List of normalized tokens
 	 */
-	public static LinkedList<Token> normalize(List<Token> list, SettingsLegacy normalizerStorage) {
+	public static LinkedList<Token> normalize(List<Token> list, List<Variance> varianceTypes) {
 		LinkedList<Token> normalized = new LinkedList<Token>();
 
 		for (Token token : list) {
-			String content = normalize(token.getContent(), normalizerStorage);
+			String content = normalize(token.getContent(), varianceTypes);
 			normalized.add(new Token(token.getBegin(), token.getEnd(), content, token.getContentTag(), token.getAnnotations()));
 		}
 		return normalized;
@@ -125,11 +142,22 @@ public class VarianceClassifier {
 	 * @param normalizerStorage normalize settings (Config file)
 	 * @return normalized token
 	 */
-	public static String normalize(String token, SettingsLegacy normalizerStorage) {
-		return normalizeGraphemics(
-				normalizeMissing(normalizeAbbreviations(normalizeLineSEPARATION(token), normalizerStorage),
-						normalizerStorage),
-				normalizerStorage);
+	public static String normalize(String token, List<Variance> varianceTypes) {
+		String normalized = token;
+
+		for (Variance var : sortVariances(varianceTypes)) {
+			if (var instanceof VarianceLineSeparation)
+				normalized = normalizeLineSeparation(normalized);
+
+			if (var instanceof VarianceMissing) 
+				normalized = normalizeMissing(normalized, ((VarianceMissing) var).getMissing());
+
+			if (var instanceof VarianceReplacement) 
+				normalized = normalizeReplace(normalized, ((VarianceReplacement) var).getRules());
+			
+
+		}
+		return normalized;
 	}
 
 	/**
@@ -140,7 +168,7 @@ public class VarianceClassifier {
 	 * @param token token to normalize
 	 * @return normalized token
 	 */
-	public static String normalizeLineSEPARATION(String token) {
+	public static String normalizeLineSeparation(String token) {
 		return token.replace(System.lineSeparator(), "");
 	}
 
@@ -192,12 +220,54 @@ public class VarianceClassifier {
 	 *                          (Config file)
 	 * @return normalized token
 	 */
-	public static String normalizeAbbreviations(String token, SettingsLegacy normalizerStorage) {
+	public static String normalizeReplace(String token, Map<String, String> rules) {
 		String normalizedToken = token;
-		for (Map.Entry<String, String> touple : normalizerStorage.getAbbreviations().entrySet()) {
+		for (Map.Entry<String, String> touple : rules.entrySet()) {
 			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
 		}
 
 		return normalizedToken;
 	}
+	
+	public static List<Variance> sortVariances(List<Variance> variances) {
+		List<Variance> sorted = new ArrayList<>();
+
+		// Add all VarianceTypography
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceTypography)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+
+		// Add all VarianceMissing sorted by priority 
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceMissing)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+		
+		// Add all VarianceReplacement sorted by priority 
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceReplacement)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+		
+		// Add all VarianceLine sorted by priority 
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceLine)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+
+		// Add all VarianceSeparation sorted by priority 
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceSeparation)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+
+		// Add all VarianceDistance sorted by priority 
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceDistance)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+
+		// Add all VarianceContent
+		sorted.addAll(variances.stream().filter(v -> v instanceof VarianceContent)
+				.sorted((v1,v2) -> Integer.compare(v1.getPriority(), v2.getPriority()))
+				.collect(Collectors.toList()));
+
+		return sorted;
+	}
+	
 }

@@ -1,8 +1,5 @@
 $primary-color: #5c6bc0;
 $background-color: #fafafa;
-$delete-color: #ef5350;
-$insert-color: #66bb6a;
-$change-color: #4fc3f7;
 $default-font-size: 16px;
 $default-font-size-print: 12px;
 
@@ -172,13 +169,6 @@ main{
                 cursor: pointer;
                 position: absolute;
                 &.ALL{ background: white; }
-                &.PUNCTUATION{ background: #f44336; }
-                &.GRAPHEMICS{ background: #ffb74d; }
-                &.ABBREVIATION { background: #9c27b0; }
-                &.TYPOGRAPHY{ background: #03a9f4; }
-                &.PARATEXT{ background: #009688; }
-                &.CONTENT{ background: #8bc34a; }
-                &.SEPARATION{ background: #e0e1e0; }
                 cursor: pointer;
                 position: absolute;
                 width: 18px;
@@ -262,93 +252,6 @@ main{
             .line-fragment{
                 font-family: "Andron Scriptor Web";
                 *{font-family: "Andron Scriptor Web";}
-                &.ACTIVE{
-                    &.PUNCTUATION{
-                        span:not(.fillerspace){background-color: #ffebee;}
-                        &.INSERT{
-                            .highlight{background-color: #e57373;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #f44336;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #d32f2f;}
-                        }
-                    }
-                    &.GRAPHEMICS{
-                        span:not(.fillerspace){background-color: #fff3e0;}
-                        &.INSERT{
-                            .highlight{background-color: #ffe0b2;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #ffb74d;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #ff9800;}
-                        }
-                    }
-                    &.ABBREVIATION {
-                        span:not(.fillerspace){background-color: #e8eaf6;}
-                        &.INSERT{
-                            .highlight{background-color: #ba68c8;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #9c27b0;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #ab47bc;}
-                        }
-                    }
-                    &.TYPOGRAPHY{
-                        span:not(.fillerspace){background-color: #e1f5fe;}
-                        &.INSERT{
-                            .highlight{background-color: #4fc3f7;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #03a9f4;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #0288d1;}
-                        }
-                    }
-                    &.PARATEXT{
-                        span:not(.fillerspace){background-color: #e0f2f1;}
-                        &.INSERT{
-                            .highlight{background-color: #4db6ac;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #009688;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #00796b;}
-                        }
-                    }
-                    &.CONTENT{
-                        span:not(.fillerspace){background-color: #f1f8e9;}
-                        &.INSERT{
-                            .highlight{background-color: #aed581;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #8bc34a;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #689f38;}
-                        }
-                    }
-                    &.SEPARATION{
-                        span:not(.fillerspace){background-color: #f5f5f5;}
-                        &.INSERT{
-                            .highlight{background-color: #9e9e9e;}
-                        }
-                        &.DELETE{
-                            .highlight{background-color: #9e9e9e;}
-                        }
-                        &.CHANGE{
-                            .highlight{background-color: #9e9e9e;}
-                        }
-                    }
-                }
-                //background-color: $insert-color;
             }
         }
     }
@@ -359,10 +262,6 @@ main{
 .sizeXXL{font-size: 130%;}
 .straight{text-decoration: underline;}
 .initial{text-decoration: underline;}
-.indentNone{}
-#legend{
-
-}
 
 footer{
     font-size: small;

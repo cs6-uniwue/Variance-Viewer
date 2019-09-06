@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import de.uniwue.compare.token.Token;
-import de.uniwue.compare.variance.types.VarianceType;
 
 /**
  * Connection between original and revised tokens.
@@ -15,13 +14,13 @@ import de.uniwue.compare.variance.types.VarianceType;
 public class ConnectedContent {
 	private LinkedList<Token> original, revised;
 	private final ContentType contentType;
-	private VarianceType varianceType;
+	private String varianceType;
 
-	public ConnectedContent(Token original, Token revised, ContentType contentType, VarianceType varianceType) {
+	public ConnectedContent(Token original, Token revised, ContentType contentType, String varianceType) {
 		this(new LinkedList<Token>(Arrays.asList(original)),new LinkedList<Token>(Arrays.asList(revised)),contentType, varianceType);
 	}
 	public ConnectedContent(LinkedList<Token> original, LinkedList<Token> revised,
-			ContentType contentType, VarianceType varianceType) {
+			ContentType contentType, String varianceType) {
 		this.original = new LinkedList<Token>();
 		addOriginal(original);
 		this.revised = revised;
@@ -35,10 +34,10 @@ public class ConnectedContent {
 		this.original = new LinkedList<Token>();
 		addOriginal(equalContent);
 		this.contentType = ContentType.EQUAL;
-		this.varianceType = VarianceType.NONE;
+		this.varianceType = "NONE";
 	}
 
-	public ConnectedContent(ContentType type, VarianceType varianceType) {
+	public ConnectedContent(ContentType type, String varianceType) {
 		this(new LinkedList<Token>(), new LinkedList<Token>(), type, varianceType);
 	}
 
@@ -60,11 +59,11 @@ public class ConnectedContent {
 		return contentType;
 	}
 
-	public VarianceType getVarianceType() {
+	public String getVarianceType() {
 		return varianceType;
 	}
 
-	public void setVarianceType(VarianceType varianceType) {
+	public void setVarianceType(String varianceType) {
 		this.varianceType = varianceType;
 	}
 

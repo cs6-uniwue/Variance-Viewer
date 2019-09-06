@@ -8,11 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import de.uniwue.compare.variance.types.Variance;
-import de.uniwue.compare.variance.types.VarianceContent;
-import de.uniwue.compare.variance.types.VarianceLineSeparation;
 import de.uniwue.compare.variance.types.VarianceMissing;
 import de.uniwue.compare.variance.types.VarianceReplacement;
-import de.uniwue.compare.variance.types.VarianceTypography;
 
 /**
  * Settings object representing all variance rules and display settings.
@@ -44,14 +41,14 @@ public class SettingsLegacy {
 	}
 
 	public List<Variance> getVariances(){
-		return Arrays.asList(new Variance[] {
+		List<Variance> variances = Arrays.asList(new Variance[] {
 				new VarianceMissing("PUNKTUATION", "#f44336", 0, punctuation),
 				new VarianceReplacement("GRAPHEMICS", "#ffb74d", 0, graphemes),
 				new VarianceReplacement("ABBREVIATION", "#9c27b0", 1, abbreviations),
-				new VarianceTypography("#03a9f4", 0),
-				new VarianceContent("#8bc34a",0),
-				new VarianceLineSeparation("#e0e1e0;",0),
 		});
+		
+		variances.addAll(Variance.getBaseVariances());
+		return variances;
 	}
 	
 	/**

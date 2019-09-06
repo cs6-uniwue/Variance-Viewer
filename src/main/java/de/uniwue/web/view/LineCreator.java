@@ -10,7 +10,6 @@ import java.util.List;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
 import de.uniwue.compare.token.Token;
-import de.uniwue.compare.variance.types.VarianceType;
 
 public class LineCreator {
 
@@ -25,7 +24,7 @@ public class LineCreator {
 		boolean singleEndedWithNewLine = false;
 		
 		for (ConnectedContent connectedContent : content) {
-			VarianceType varianceType = connectedContent.getVarianceType();
+			String varianceType = connectedContent.getVarianceType();
 		
 			switch (connectedContent.getContentType()) {
 			case INSERT:
@@ -121,7 +120,7 @@ public class LineCreator {
 		return lines;
 	}
 
-	private static void splitToken(Token token, VarianceType varianceType, ConnectedLines connectedLines,
+	private static void splitToken(Token token, String varianceType, ConnectedLines connectedLines,
 			boolean isOriginalLine) {
 		int begin = token.getBegin();
 

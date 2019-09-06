@@ -1,5 +1,6 @@
 package de.uniwue.compare.variance.types;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 /**
  * Variance with replacement distance e.g. 
@@ -35,15 +36,7 @@ public class VarianceDistance extends Variance {
 	 * @return
 	 */
 	public static int distance(String word1, String word2) {
-		if(word1.length() != word2.length()) 
-			return -1;
-		
-		int distance = 0;
-		for (int c = 0; c < word1.length(); c++) {
-			if (word1.charAt(c) != word2.charAt(c))
-				distance++;
-			
-		}
-		return distance;
+		LevenshteinDistance calculator = LevenshteinDistance.getDefaultInstance();
+		return calculator.apply(word1, word2);
 	}
 }
