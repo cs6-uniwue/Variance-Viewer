@@ -9,8 +9,8 @@ import java.util.List;
 
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
-import de.uniwue.compare.VarianceType;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.variance.types.VarianceType;
 
 public class LineCreator {
 

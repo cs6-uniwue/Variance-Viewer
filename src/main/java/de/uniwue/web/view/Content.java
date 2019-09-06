@@ -3,8 +3,8 @@ package de.uniwue.web.view;
 import java.util.List;
 
 import de.uniwue.compare.ContentType;
-import de.uniwue.compare.VarianceType;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.variance.types.VarianceType;
 
 public class Content extends Token {
 

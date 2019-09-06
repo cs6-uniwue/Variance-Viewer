@@ -1,11 +1,17 @@
-package de.uniwue.compare;
+package de.uniwue.compare.variance;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import de.uniwue.compare.ContentType;
+import de.uniwue.compare.SettingsLegacy;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.variance.types.Variance;
+import de.uniwue.compare.variance.types.VarianceMissing;
+import de.uniwue.compare.variance.types.VarianceType;
 
 public class VarianceClassifier {
 
@@ -22,15 +28,24 @@ public class VarianceClassifier {
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the token
 	 */
-	public static VarianceType getVarianceTypeSingle(Token content, ContentType type, Settings normalizerStorage) {
+	public static VarianceType getVarianceTypeSingle(Token content, ContentType type, List<Variance> varianceTypes) {
+		List<VarianceMissing> missing = varianceTypes.stream().filter(v -> v instanceof VarianceMissing)
+													.map(v -> (VarianceMissing) v).collect(Collectors.toList());
+		
 		if (type.equals(ContentType.INSERT) || type.equals(ContentType.DELETE) || type.equals(ContentType.CHANGE)) {
 			String contentWork = normalizeLineSEPARATION(content.getContent());
-			if (contentWork.equals(""))
-				return VarianceType.SEPARATION;
-			else if (removePunctuation(contentWork, normalizerStorage).equals(""))
-				return VarianceType.PUNCTUATION;
-			else
+			if (contentWork.equals("")) {
+				return VarianceType.LINESEPARATION;
+			} else {
+				// Check missing Variance Types
+				for(VarianceMissing m : missing) {
+					if (normalizeMissing(contentWork, m.getMissing()).equals(""))
+						return VarianceType.MISSING;
+				}
+				
+				// Fallback content
 				return VarianceType.CONTENT;
+			}
 		}
 		return VarianceType.NONE;
 	}
@@ -49,7 +64,7 @@ public class VarianceClassifier {
 	 * @return Variance Type of the tuple of tokens
 	 */
 	public static VarianceType getVarianceTypeTouple(Token original, Token revised, ContentType type,
-			Settings normalizerStorage) {
+			SettingsLegacy normalizerStorage) {
 		if (type.equals(ContentType.EQUAL))
 			return VarianceType.NONE;
 
@@ -58,21 +73,21 @@ public class VarianceClassifier {
 
 		// Test for Separation
 		if (originalWork.equals(revisedWork) && original.getAnnotations().equals(revised.getAnnotations()))
-			return VarianceType.SEPARATION;
+			return VarianceType.LINESEPARATION;
 
 		// Test for Typography
 		if (originalWork.equals(revisedWork))
 			return VarianceType.TYPOGRAPHY;
 
 		// Test for Punctuation
-		if (removePunctuation(originalWork, normalizerStorage)
-				.equals(removePunctuation(revisedWork, normalizerStorage)))
-			return VarianceType.PUNCTUATION;
+		//if (normalizeMissing(originalWork, normalizerStorage)
+		//		.equals(normalizeMissing(revisedWork, normalizerStorage)))
+		//	return VarianceType.MISSING;
 
 		// Test for Graphemics
 		if (normalizeGraphemics(originalWork, normalizerStorage)
 				.equals(normalizeGraphemics(revisedWork, normalizerStorage)))
-			return VarianceType.GRAPHEMICS;
+			return VarianceType.REPLACEMENT;
 
 		// Test for Abbreviations
 		if (normalizeAbbreviations(originalWork, normalizerStorage)
@@ -91,7 +106,7 @@ public class VarianceClassifier {
 	 * @param normalizerStorage normalize settings (Config file)
 	 * @return List of normalized tokens
 	 */
-	public static LinkedList<Token> normalize(List<Token> list, Settings normalizerStorage) {
+	public static LinkedList<Token> normalize(List<Token> list, SettingsLegacy normalizerStorage) {
 		LinkedList<Token> normalized = new LinkedList<Token>();
 
 		for (Token token : list) {
@@ -110,9 +125,9 @@ public class VarianceClassifier {
 	 * @param normalizerStorage normalize settings (Config file)
 	 * @return normalized token
 	 */
-	public static String normalize(String token, Settings normalizerStorage) {
+	public static String normalize(String token, SettingsLegacy normalizerStorage) {
 		return normalizeGraphemics(
-				removePunctuation(normalizeAbbreviations(normalizeLineSEPARATION(token), normalizerStorage),
+				normalizeMissing(normalizeAbbreviations(normalizeLineSEPARATION(token), normalizerStorage),
 						normalizerStorage),
 				normalizerStorage);
 	}
@@ -139,14 +154,13 @@ public class VarianceClassifier {
 	 *                          file)
 	 * @return normalized token
 	 */
-	public static String removePunctuation(String token, Settings normalizerStorage) {
-		String punctuations = "";
-		for (String punctuation : normalizerStorage.getPunctuation())
-			punctuations += punctuation;
-		if (punctuations.length() > 0)
-			return token.replaceAll("[" + Pattern.quote(punctuations) + "]", "");
-		else
+	public static String normalizeMissing(String token, List<String> missing) {
+		if (missing.size() > 0) {
+			List<String> quoted = missing.stream().map(Pattern::quote).collect(Collectors.toList());
+			return token.replaceAll(String.format("(%s)", String.join("|", quoted)), "");
+		} else {
 			return token;
+		}
 	}
 
 	/**
@@ -159,7 +173,7 @@ public class VarianceClassifier {
 	 *                          file)
 	 * @return normalized token
 	 */
-	public static String normalizeGraphemics(String token, Settings normalizerStorage) {
+	public static String normalizeGraphemics(String token, SettingsLegacy normalizerStorage) {
 		String normalizedToken = token;
 		normalizedToken = normalizedToken.toLowerCase();
 		for (Map.Entry<String, String> touple : normalizerStorage.getGraphemes().entrySet())
@@ -178,7 +192,7 @@ public class VarianceClassifier {
 	 *                          (Config file)
 	 * @return normalized token
 	 */
-	public static String normalizeAbbreviations(String token, Settings normalizerStorage) {
+	public static String normalizeAbbreviations(String token, SettingsLegacy normalizerStorage) {
 		String normalizedToken = token;
 		for (Map.Entry<String, String> touple : normalizerStorage.getAbbreviations().entrySet()) {
 			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());

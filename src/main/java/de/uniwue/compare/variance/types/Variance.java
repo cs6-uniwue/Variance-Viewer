@@ -1,16 +1,21 @@
-package de.uniwue.compare;
+package de.uniwue.compare.variance.types;
 
 /**
  * Variance with predefined types and user defined names 
  */
 public class Variance {
 
-	private final String name;
-	private final VarianceType type;
+	protected final String name;
+	protected final VarianceType type;
+	protected final String color;
+	protected final int priority;
 	
-	public Variance(String name, VarianceType type) {
+	
+	public Variance(String name, VarianceType type, String color, int priority) {
 		this.name = name;
 		this.type = type;
+		this.color = color;
+		this.priority = priority;
 	}
 	
 	public String getName() {
@@ -20,6 +25,14 @@ public class Variance {
 		return type;
 	}
 
+	public String getColor() {
+		return color;
+	}
+	
+	public int getPriority() {
+		return priority;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

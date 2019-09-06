@@ -13,8 +13,8 @@ import com.google.gson.Gson;
 
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
-import de.uniwue.compare.VarianceType;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.wa.server.editor.AnnotationWrapper;
 import de.uniwue.wa.server.editor.FeatureWrapper;
 import de.uniwue.wa.server.editor.TextAnnotationStruct;

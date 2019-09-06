@@ -28,8 +28,8 @@ import de.uniwue.compare.Annotation;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.DocumentType;
-import de.uniwue.compare.Settings;
-import de.uniwue.compare.VarianceType;
+import de.uniwue.compare.SettingsLegacy;
+import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
 import de.uniwue.translate.XMLCleaner;
@@ -41,7 +41,7 @@ public class NavigationController {
 	@Autowired
 	ServletContext servletContext;
 	List<VarianceType> outputVarianceTypes = Arrays.asList(VarianceType.CONTENT, VarianceType.ABBREVIATION,
-			VarianceType.GRAPHEMICS, VarianceType.NONE, VarianceType.PUNCTUATION,
+			VarianceType.REPLACEMENT, VarianceType.NONE, VarianceType.MISSING,
 			VarianceType.TYPOGRAPHY);
 
 	@RequestMapping(value = "/")
@@ -60,18 +60,18 @@ public class NavigationController {
 			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
-			Settings settings;
+			SettingsLegacy settings;
 			if (!settingsFile.isEmpty()) {
 				try {
 					String settingsContent = StorageManager.getSettings(settingsFile, servletContext);
-					settings = new Settings(settingsContent);
+					settings = new SettingsLegacy(settingsContent);
 				} catch (IllegalArgumentException e) {
 					// Invalid settingsString
 					model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
 					return home(model);
 				}
 			} else {
-				settings = new Settings(StorageManager.getDefault(servletContext));
+				settings = new SettingsLegacy(StorageManager.getDefault(servletContext));
 			}
 
 			// Compare document files

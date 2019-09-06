@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.variance.types.VarianceType;
 
 /**
  * Connection between original and revised tokens.
@@ -16,16 +17,16 @@ public class ConnectedContent {
 	private final ContentType contentType;
 	private VarianceType varianceType;
 
-	public ConnectedContent(Token original, Token revised, ContentType contentType) {
-		this(new LinkedList<Token>(Arrays.asList(original)),new LinkedList<Token>(Arrays.asList(revised)),contentType);
+	public ConnectedContent(Token original, Token revised, ContentType contentType, VarianceType varianceType) {
+		this(new LinkedList<Token>(Arrays.asList(original)),new LinkedList<Token>(Arrays.asList(revised)),contentType, varianceType);
 	}
 	public ConnectedContent(LinkedList<Token> original, LinkedList<Token> revised,
-			ContentType contentType) {
+			ContentType contentType, VarianceType varianceType) {
 		this.original = new LinkedList<Token>();
 		addOriginal(original);
 		this.revised = revised;
 		this.contentType = contentType;
-		this.varianceType = contentType.equals(ContentType.EQUAL) ? VarianceType.NONE : VarianceType.CONTENT;
+		this.varianceType = varianceType;
 	}
 
 	public ConnectedContent(LinkedList<Token> equalContent) {
@@ -37,8 +38,8 @@ public class ConnectedContent {
 		this.varianceType = VarianceType.NONE;
 	}
 
-	public ConnectedContent(ContentType type) {
-		this(new LinkedList<Token>(), new LinkedList<Token>(), type);
+	public ConnectedContent(ContentType type, VarianceType varianceType) {
+		this(new LinkedList<Token>(), new LinkedList<Token>(), type, varianceType);
 	}
 
 	public LinkedList<Token> getOriginal() {
