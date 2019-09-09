@@ -9,10 +9,10 @@ package de.uniwue.compare.variance.types;
  * Test: this is an example	| Test : this is an exam ple
  * Would be VarianceSeparation of "Test:" and "Test :", as well as "example" and "exam ple"
  */
-public abstract class VarianceSeparation extends Variance{
+public class VarianceSeparation extends Variance{
 	
-	public VarianceSeparation(String color, int priority, int seperations) {
-		super("SEPARATION", VarianceType.SEPARATION, color, priority);
+	public VarianceSeparation(String tag, String color, int priority, int seperations) {
+		super(tag, VarianceType.SEPARATION, color, priority);
 	}
 	
 }

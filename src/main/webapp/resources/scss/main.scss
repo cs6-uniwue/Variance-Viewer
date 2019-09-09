@@ -8,6 +8,11 @@ $default-font-size-print: 12px;
   src: url('../font/unifont_upper-11.0.02.ttf') format('truetype');
 }
 
+@font-face {
+  font-family: 'Andron Scriptor Web';
+  src: url('../font/Andron Scriptor Web.ttf') format('truetype');
+}
+
 *{
     font-family: 'Roboto', sans-serif;
     font-size: $default-font-size;
@@ -250,8 +255,8 @@ main{
                 padding: 5px;
             }
             .line-fragment{
-                font-family: "Andron Scriptor Web";
-                *{font-family: "Andron Scriptor Web";}
+                font-family: "Andron Scriptor Web", Unifont;
+                *{font-family: "Andron Scriptor Web", Unifont;}
             }
         }
     }

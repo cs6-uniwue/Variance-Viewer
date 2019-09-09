@@ -27,7 +27,7 @@ public class Diff {
 	 * @return
 	 * @throws PatchFailedException
 	 */
-	public static List<ConnectedContent> comparePlainText(String content1, String content2, SettingsLegacy settings) {
+	public static List<ConnectedContent> comparePlainText(String content1, String content2, Settings settings) {
 		List<Token> tokens1 = Tokenizer.tokenize(content1,"plain");
 		List<Token> tokens2 = Tokenizer.tokenize(content2,"plain");
 
@@ -49,7 +49,7 @@ public class Diff {
 	 * @return
 	 */
 	public static List<ConnectedContent> compareXML(String content1Text, String content2Text,
-			Collection<Annotation> annotations1, Collection<Annotation> annotations2, SettingsLegacy settings) {
+			Collection<Annotation> annotations1, Collection<Annotation> annotations2, Settings settings) {
 
 		final Comparator<Annotation> annotationComparator = (a1, a2) -> {
 			int compare = Long.compare(a1.getBegin(), a2.getBegin());

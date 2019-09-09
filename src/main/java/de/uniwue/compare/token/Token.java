@@ -7,6 +7,8 @@ import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import de.uniwue.compare.variance.types.Variance;
+
 /**
  * Token class to represent the smallest unit in a text to compare.
  * A token is considered to be any text separated by whitespace.
@@ -128,6 +130,16 @@ public class Token {
 	 */
 	public AnnotationToken getAnnotationToken() {
 		return new AnnotationToken(this);
+	}
+
+	/**
+	 * Create a token with the same characteristics than this token in regards of
+	 * variance. Equals ignores Variances.
+	 * 
+	 * @return
+	 */
+	public VarianceToken getVarianceToken(List<Variance> variances) {
+		return new VarianceToken(this, variances);
 	}
 
 	@Override

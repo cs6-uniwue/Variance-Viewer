@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import de.uniwue.compare.token.AnnotationToken;
-import de.uniwue.compare.token.TextToken;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.token.VarianceToken;
 import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.types.Variance;
 import difflib.Chunk;
@@ -26,14 +26,13 @@ public class DiffCreator {
 	 * @param revisedLines           Lines from the second document
 	 * @param diffs                  Diffs between the two documents
 	 * @param diffAnnotationsInEqual Search more annotations in equal portions
-	 * @param normalizerStorage      Setting for normalizations
+	 * @param settings      		Setting for normalizations
 	 * @return
 	 */
 	public static List<ConnectedContent> patch(List<? extends Token> originalLines, List<? extends Token> revisedLines,
-			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, SettingsLegacy normalizerStorage) {
+			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, Settings settings) {
 		List<ConnectedContent> content = new LinkedList<ConnectedContent>();
-		List<Variance> variances = VarianceClassifier.sortVariances(normalizerStorage.getVariances());
-		
+		List<Variance> variances = VarianceClassifier.sortVariances(settings.getVariances());
 		
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
@@ -64,7 +63,7 @@ public class DiffCreator {
 
 					Patch<AnnotationToken> annotationPatch = DiffUtils.diff(annotationTokens1, annotationTokens2);
 					List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
-							annotationPatch.getDeltas(), false, normalizerStorage);
+							annotationPatch.getDeltas(), false, settings);
 
 					for (ConnectedContent annotationContent : annotationDiff) {
 						if (!annotationContent.getContentType().equals(ContentType.EQUAL))
@@ -107,12 +106,12 @@ public class DiffCreator {
 
 				// Compare normalized tokens to find connected diffs that can be equalized by
 				// Punctuation, Graphemics etc.
-				LinkedList<TextToken> originalTestTokens = VarianceClassifier.normalize(originalTokens, variances).stream()
-						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
-				LinkedList<TextToken> revisedTestTokens = VarianceClassifier.normalize(revisedTokens, variances).stream()
-						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
+				LinkedList<VarianceToken> originalTestTokens = originalTokens.stream()
+						.map(t -> t.getVarianceToken(variances)).collect(Collectors.toCollection(LinkedList::new));
+				LinkedList<VarianceToken> revisedTestTokens = revisedTokens.stream()
+						.map(t -> t.getVarianceToken(variances)).collect(Collectors.toCollection(LinkedList::new));
 
-				Patch<TextToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
+				Patch<VarianceToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
 				List<? extends Delta<? extends Token>> testDeltas = textPatch.getDeltas();
 
 				int lastOriginalPosition = -1;
@@ -149,10 +148,10 @@ public class DiffCreator {
 								String varianceType = null;
 								if (originalTest.getContent().length() > 0) {
 									varianceType = VarianceClassifier.getVarianceTypeSingle(originalTest, originalTokens, ContentType.DELETE,
-											normalizerStorage.getVariances());
+											settings.getVariances());
 								} else if (revisedTest.getContent().length() > 0) {
 									varianceType = VarianceClassifier.getVarianceTypeSingle(revisedTest, revisedTokens, ContentType.INSERT,
-											normalizerStorage.getVariances());
+											settings.getVariances());
 								}
 
 								highlightTokens(originalTest, revisedTest, varianceType);
@@ -261,7 +260,7 @@ public class DiffCreator {
 
 				Patch<AnnotationToken> annotationPatch = DiffUtils.diff(annotationTokens1, annotationTokens2);
 				List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
-						annotationPatch.getDeltas(), false, normalizerStorage);
+						annotationPatch.getDeltas(), false, settings);
 
 				for (ConnectedContent annotationContent : annotationDiff) {
 					if (!annotationContent.getContentType().equals(ContentType.EQUAL))

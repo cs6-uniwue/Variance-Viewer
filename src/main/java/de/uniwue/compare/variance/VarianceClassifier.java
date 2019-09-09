@@ -8,7 +8,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import de.uniwue.compare.ContentType;
-import de.uniwue.compare.SettingsLegacy;
 import de.uniwue.compare.token.Token;
 import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.compare.variance.types.VarianceContent;
@@ -50,9 +49,9 @@ public class VarianceClassifier {
 				if (var instanceof VarianceContent)
 					return var.getName();
 			}
-			return null; // This should never have to be called, unless the varianceType does not contain VarianceContent
+			return "NONE"; // This should never have to be called, unless the varianceType does not contain VarianceContent
 		} else {
-			return null;
+			return "NONE";
 		}
 	}
 
@@ -72,7 +71,7 @@ public class VarianceClassifier {
 	public static String getVarianceTypeTouple(Token original, Token revised, ContentType type,
 			List<Variance> varianceTypes) {
 		if (type.equals(ContentType.EQUAL))
-			return null;
+			return "NONE";
 		
 		
 		for (Variance var : sortVariances(varianceTypes)) {
@@ -111,7 +110,7 @@ public class VarianceClassifier {
 
 		}
 		
-		return null;
+		return "NONE";
 	}
 
 	/**
@@ -189,25 +188,6 @@ public class VarianceClassifier {
 		} else {
 			return token;
 		}
-	}
-
-	/**
-	 * Normalize a token to check for graphemic changes. E.g. "TestÄ" "TestAe" can
-	 * be normalized to "TestAe" (if given the graphemic rule "Ä->Ae"), which helps
-	 * to identify a graphemic variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all graphemic rules (Config
-	 *                          file)
-	 * @return normalized token
-	 */
-	public static String normalizeGraphemics(String token, SettingsLegacy normalizerStorage) {
-		String normalizedToken = token;
-		normalizedToken = normalizedToken.toLowerCase();
-		for (Map.Entry<String, String> touple : normalizerStorage.getGraphemes().entrySet())
-			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
-
-		return normalizedToken;
 	}
 
 	/**

@@ -3,7 +3,6 @@ package de.uniwue.web.controller;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,7 +27,7 @@ import de.uniwue.compare.Annotation;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.DocumentType;
-import de.uniwue.compare.SettingsLegacy;
+import de.uniwue.compare.Settings;
 import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.translate.DiffExporter;
@@ -41,9 +40,6 @@ import de.uniwue.web.view.LineCreator;
 public class NavigationController {
 	@Autowired
 	ServletContext servletContext;
-	List<VarianceType> outputVarianceTypes = Arrays.asList(VarianceType.CONTENT, VarianceType.ABBREVIATION,
-			VarianceType.REPLACEMENT, VarianceType.NONE, VarianceType.MISSING,
-			VarianceType.TYPOGRAPHY);
 
 	@RequestMapping(value = "/")
 	public String home(Model model) {
@@ -61,20 +57,22 @@ public class NavigationController {
 			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
-			SettingsLegacy settings;
+			Settings settings;
 			if (!settingsFile.isEmpty()) {
 				try {
 					String settingsContent = StorageManager.getSettings(settingsFile, servletContext);
-					settings = new SettingsLegacy(settingsContent);
+					settings = new Settings(settingsContent);
 				} catch (IllegalArgumentException e) {
 					// Invalid settingsString
 					model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
 					return home(model);
 				}
 			} else {
-				settings = new SettingsLegacy(StorageManager.getDefault(servletContext));
+				settings = new Settings(StorageManager.getDefault(servletContext));
 			}
 
+			List<String> outputVarianceTypes = settings.getVariances().stream().map(v -> v.getName()).collect(Collectors.toList());
+			
 			// Compare document files
 			try {
 				String file1Type = file1.getContentType();
@@ -127,6 +125,8 @@ public class NavigationController {
 					content2 = content2.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 					List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
 
+					outputVarianceTypes.remove("TYPOGRAPHY");
+					
 					model.addAttribute("format", "txt");
 					model.addAttribute("exportJSON",
 							DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
