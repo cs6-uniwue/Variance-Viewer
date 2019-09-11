@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
 import de.uniwue.compare.token.Token;
 import de.uniwue.compare.variance.types.Variance;
@@ -34,7 +35,7 @@ public class VarianceClassifier {
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the token
 	 */
-	public static String getVarianceTypeSingle(Token content, List<? extends Token> document, ContentType type, List<Variance> varianceTypes) {
+	public static String classifySingle(Token content, List<? extends Token> document, ContentType type, List<Variance> varianceTypes) {
 		if (type.equals(ContentType.INSERT) || type.equals(ContentType.DELETE) || type.equals(ContentType.CHANGE)) {
 			for (Variance var : sortVariances(varianceTypes)) {
 				String text = content.getContent();
@@ -68,7 +69,7 @@ public class VarianceClassifier {
 	 * @param normalizerStorage Normalize settings and rules
 	 * @return Variance Type of the tuple of tokens
 	 */
-	public static String getVarianceTypeTouple(Token original, Token revised, ContentType type,
+	public static String classifyTouple(Token original, Token revised, ContentType type,
 			List<Variance> varianceTypes) {
 		if (type.equals(ContentType.EQUAL))
 			return "NONE";
@@ -113,6 +114,9 @@ public class VarianceClassifier {
 		return "NONE";
 	}
 
+	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
+		return contents;
+	}
 	/**
 	 * Normalize tokens to check for different variance types. E.g. "Test" "Test."
 	 * can both be normalized to "Test", which helps to identify underlying variance

@@ -21,6 +21,8 @@ public class DiffCreator {
 	/**
 	 * Patch a diff with the original two lists of tokens to combine them into
 	 * connected content (Adds equal parts not present in the diff etc.)
+	 * Tokens are combined into connected contents by analyzing and classifying
+	 * them by different variance types.
 	 * 
 	 * @param originalLines          Lines form the first document
 	 * @param revisedLines           Lines from the second document
@@ -37,6 +39,7 @@ public class DiffCreator {
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
 
+		// Loop over all deltas add missing deltas, combine and classify them into connected contents 
 		ConnectedContent curContent = null;
 		for (Delta<? extends Token> delta : diffs) {
 			final Chunk<? extends Token> original = delta.getOriginal();
@@ -52,15 +55,13 @@ public class DiffCreator {
 						currentOriginalPosition);
 
 				if (diffAnnotationsInEqual) {
-					// Compare annotations in equal text
+					// Compare annotations in equal text (convert to AnnotationTokens and compare those)
 					List<? extends Token> equalRevisedLines = revisedLines.subList(prevRevisedEndPosition + 1,
 							currentRevisedPosition);
-
 					List<AnnotationToken> annotationTokens1 = equalOriginalLines.stream()
 							.map(t -> t.getAnnotationToken()).collect(Collectors.toList());
 					List<AnnotationToken> annotationTokens2 = equalRevisedLines.stream()
 							.map(t -> t.getAnnotationToken()).collect(Collectors.toList());
-
 					Patch<AnnotationToken> annotationPatch = DiffUtils.diff(annotationTokens1, annotationTokens2);
 					List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
 							annotationPatch.getDeltas(), false, settings);
@@ -70,24 +71,12 @@ public class DiffCreator {
 							annotationContent.setVarianceType("TYPOGRAPHY");
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null
-								|| !curContent.getContentType().equals(annotationContent.getContentType())
-								|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
-							curContent = annotationContent;
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(annotationContent.getOriginal());
-							curContent.addRevised(annotationContent.getRevised());
-						}
+						curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
+								curContent, content, annotationContent.getContentType(), annotationContent.getVarianceType());
 					}
 				} else {
 					// Add to last equal content (if of same type) or create new content
-					if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
-						curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
-						content.add(curContent);
-					} else {
-						curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
-					}
+					curContent = addEqualContent(equalOriginalLines, curContent, content);
 				}
 			}
 
@@ -130,27 +119,21 @@ public class DiffCreator {
 
 							if (originalTest.getContent().length() > 0 && revisedTest.getContent().length() > 0) {
 								// Change
-								String varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest,
+								String varianceType = VarianceClassifier.classifyTouple(originalTest, revisedTest,
 										ContentType.CHANGE, variances);
 								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
-								if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-										|| !curContent.getVarianceType().equals(varianceType)) {
-									curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE, varianceType);
-									content.add(curContent);
-								} else {
-									curContent.addOriginal(originalTest);
-									curContent.addRevised(revisedTest);
-								}
+								curContent = addContent(Arrays.asList(originalTest), Arrays.asList(revisedTest), curContent, content, 
+										ContentType.CHANGE, varianceType);
 							} else {
 								// Delete or Insert
 								String varianceType = null;
 								if (originalTest.getContent().length() > 0) {
-									varianceType = VarianceClassifier.getVarianceTypeSingle(originalTest, originalTokens, ContentType.DELETE,
+									varianceType = VarianceClassifier.classifySingle(originalTest, originalTokens, ContentType.DELETE,
 											settings.getVariances());
 								} else if (revisedTest.getContent().length() > 0) {
-									varianceType = VarianceClassifier.getVarianceTypeSingle(revisedTest, revisedTokens, ContentType.INSERT,
+									varianceType = VarianceClassifier.classifySingle(revisedTest, revisedTokens, ContentType.INSERT,
 											settings.getVariances());
 								}
 
@@ -158,23 +141,11 @@ public class DiffCreator {
 
 								// Add to last content (if of same type) or create new content
 								if (originalTest.getContent().length() > 0) {
-									if (curContent == null || !curContent.getContentType().equals(ContentType.INSERT)
-											|| !curContent.getVarianceType().equals(varianceType)) {
-										curContent = new ConnectedContent(ContentType.INSERT, varianceType);
-										curContent.addOriginal(originalTest);
-										content.add(curContent);
-									} else {
-										curContent.addOriginal(originalTest);
-									}
+									curContent = addContent(Arrays.asList(originalTest), new LinkedList<>(), curContent, content,
+											ContentType.INSERT, varianceType);
 								} else if (revisedTest.getContent().length() > 0) {
-									if (curContent == null || !curContent.getContentType().equals(ContentType.DELETE)
-											|| !curContent.getVarianceType().equals(varianceType)) {
-										curContent = new ConnectedContent(ContentType.DELETE, varianceType);
-										curContent.addOriginal(revisedTest);
-										content.add(curContent);
-									} else {
-										curContent.addOriginal(originalTest);
-									}
+									curContent = addContent(new LinkedList<>(), Arrays.asList(revisedTest), curContent, content,
+											ContentType.DELETE, varianceType);
 								}
 							}
 						}
@@ -197,21 +168,14 @@ public class DiffCreator {
 						unequalTokensRevised.forEach(t -> t.highlightEverything());
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-								|| !curContent.getVarianceType().equals("CONTENT")) {
-							curContent = new ConnectedContent(unequalTokensOriginal, unequalTokensRevised,
-									ContentType.CHANGE, "CONTENT");
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(unequalTokensOriginal);
-							curContent.addRevised(unequalTokensRevised);
-						}
+						curContent = addContent(unequalTokensOriginal, unequalTokensRevised, curContent, content, ContentType.CHANGE, "CONTENT");
 					}
 
 					lastOriginalPosition = testDelta.getOriginal().last();
 					lastRevisedPosition = testDelta.getRevised().last();
 				}
 
+				// Test equal tokens after the end of the last change
 				if (lastOriginalPosition + 1 < originalTestTokens.size()) {
 					// Test Equal on end
 					LinkedList<Token> equalTokensOriginal = new LinkedList<Token>(
@@ -222,19 +186,13 @@ public class DiffCreator {
 					for (int i = 0; i < equalTokensOriginal.size(); i++) {
 						Token originalTest = equalTokensOriginal.get(i);
 						Token revisedTest = equalTokensRevised.get(i);
-						String varianceType = VarianceClassifier.getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
+						String varianceType = VarianceClassifier.classifyTouple(originalTest, revisedTest, ContentType.CHANGE,
 								variances);
 						highlightTokens(originalTest, revisedTest, varianceType);
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-								|| !curContent.getVarianceType().equals(varianceType)) {
-							curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE, varianceType);
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(originalTest);
-							curContent.addRevised(revisedTest);
-						}
+						curContent = addContent(Arrays.asList(originalTest), Arrays.asList(revisedTest), curContent, content,
+								ContentType.CHANGE, varianceType);
 					}
 				}
 
@@ -267,31 +225,84 @@ public class DiffCreator {
 						annotationContent.setVarianceType("TYPOGRAPHY");
 
 					// Add to last content (if of same type) or create new content
-					if (curContent == null || !curContent.getContentType().equals(annotationContent.getContentType())
-							|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
-						curContent = annotationContent;
-						content.add(curContent);
-					} else {
-						curContent.addOriginal(annotationContent.getOriginal());
-						curContent.addRevised(annotationContent.getRevised());
-					}
+					curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
+							curContent, content, annotationContent.getContentType(), annotationContent.getVarianceType());
 				}
 
 				content.addAll(annotationDiff);
 			} else {
 				// Add to last equal content (if of same type) or create new content
-				if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
-					curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
-					content.add(curContent);
-				} else {
-					curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
-				}
+				curContent = addEqualContent(equalOriginalLines, curContent, content);
 			}
 		}
-
+		
+		
+		// Post classification (check for variance types spanning over multiple words)
+		// Test all consecutive connected components of type "CONTENT"
+		/*List<ConnectedContent> postcorrection = new LinkedList<>();
+		List<ConnectedContent> backlog = new LinkedList<>();
+		for (ConnectedContent c : content) {
+			if (c.getVarianceType().equals("CONTENT")) {
+				backlog.add(c);
+			} else if (backlog.size() > 0) {
+				// Work on backlog
+				List<ConnectedContent> classified = VarianceClassifier.classifyMultiple(backlog);
+				postcorrection.addAll(classified);
+			}
+		}*/
+		
+		//return postcorrection;
 		return content;
 	}
 
+	/**
+	 * Add to last content (if of same type) or create new content.
+	 * Return the ConnectedContent to which it was added to.
+	 * 
+	 * @param original
+	 * @param revised
+	 * @param curContent
+	 * @param contents
+	 * @param contentType
+	 * @param varianceType
+	 * @return
+	 */
+	private static ConnectedContent addContent(List<? extends Token> original, List<? extends Token> revised, ConnectedContent curContent,
+			List<ConnectedContent> contents, ContentType contentType, String varianceType ) {
+
+		if (curContent == null || !curContent.getContentType().equals(contentType)
+				|| !curContent.getVarianceType().equals(varianceType)) {
+			curContent = new ConnectedContent(original, revised, contentType, varianceType);
+			contents.add(curContent);
+		} else {
+			if(original.size() > 0)
+				curContent.addOriginal(original);
+			if(revised.size() > 0)
+				curContent.addRevised(revised);
+		}
+		return curContent;
+	}
+	
+	/**
+	 * Add this equal to last content (if is also equal) or create new equal content.
+	 * Return the ConnectedContent to which it was added to.
+	 * 
+	 * @param tokens
+	 * @param curContent
+	 * @param contents
+	 * @return
+	 */
+	private static ConnectedContent addEqualContent(List<? extends Token> tokens, ConnectedContent curContent,
+			List<ConnectedContent> contents) {
+		if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
+			curContent = new ConnectedContent(new LinkedList<Token>(tokens));
+			contents.add(curContent);
+		} else {
+			curContent.addOriginal(tokens);
+		}
+		return curContent;
+	}
+	
 	/**
 	 * Process chunks of insert changes into ConnectedContents
 	 * 
@@ -371,7 +382,7 @@ public class DiffCreator {
 		for (Token token : tokens) {
 			token.highlightEverything();
 			String curVariance = token instanceof AnnotationToken ? "TYPOGRAPHY"
-					: VarianceClassifier.getVarianceTypeSingle(token, document, curContentType, variances);
+					: VarianceClassifier.classifySingle(token, document, curContentType, variances);
 			if (curContent == null || !curContent.getContentType().equals(curContentType)
 					|| !curContent.getVarianceType().equals(curVariance)) {
 				curContent = new ConnectedContent(curContentType, curVariance);
