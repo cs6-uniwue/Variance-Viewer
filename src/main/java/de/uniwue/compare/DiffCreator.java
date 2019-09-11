@@ -239,20 +239,29 @@ public class DiffCreator {
 		
 		// Post classification (check for variance types spanning over multiple words)
 		// Test all consecutive connected components of type "CONTENT"
-		/*List<ConnectedContent> postcorrection = new LinkedList<>();
+		List<ConnectedContent> postcorrection = new LinkedList<>();
 		List<ConnectedContent> backlog = new LinkedList<>();
-		for (ConnectedContent c : content) {
-			if (c.getVarianceType().equals("CONTENT")) {
+		for (ConnectedContent c : content) {	
+			boolean isSeparation = c.getVarianceType().equals("SEPARATION") || 
+						(c.getContentType().equals(ContentType.EQUAL) && c.getOriginalAsText()
+								.matches(SpecialCharacter.WHITESPACES_REGEX+"*"));
+			if (c.getVarianceType().equals("CONTENT") || isSeparation) {
 				backlog.add(c);
-			} else if (backlog.size() > 0) {
-				// Work on backlog
-				List<ConnectedContent> classified = VarianceClassifier.classifyMultiple(backlog);
-				postcorrection.addAll(classified);
+			} else {
+				if (backlog.size() > 0) {
+					// Work on backlog
+					postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog));
+				}
+				backlog = new LinkedList<>();
+				postcorrection.add(c);
 			}
-		}*/
-		
-		//return postcorrection;
-		return content;
+		}
+		if (backlog.size() > 0) {
+			// Last work on result backlog
+			postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog));
+		}
+	
+		return postcorrection;
 	}
 
 	/**

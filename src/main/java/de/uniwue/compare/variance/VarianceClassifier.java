@@ -1,6 +1,8 @@
 package de.uniwue.compare.variance;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +12,7 @@ import java.util.stream.Collectors;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.token.TokenReference;
 import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.compare.variance.types.VarianceContent;
 import de.uniwue.compare.variance.types.VarianceDistance;
@@ -19,6 +22,11 @@ import de.uniwue.compare.variance.types.VarianceMissing;
 import de.uniwue.compare.variance.types.VarianceReplacement;
 import de.uniwue.compare.variance.types.VarianceSeparation;
 import de.uniwue.compare.variance.types.VarianceTypography;
+import difflib.Chunk;
+import difflib.Delta;
+import difflib.Delta.TYPE;
+import difflib.DiffUtils;
+import difflib.Patch;
 
 public class VarianceClassifier {
 
@@ -115,6 +123,77 @@ public class VarianceClassifier {
 	}
 
 	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
+		System.out.println("**********************");
+		// Separate tokens into characters
+		List<TokenReference<String>> original = new LinkedList<>();
+		List<TokenReference<String>> revised = new LinkedList<>();
+		for(ConnectedContent content : contents) {
+			Iterator<Token> origIterator = content.getOriginal().iterator();
+			while(origIterator.hasNext()) {
+				Token o = origIterator.next();
+				original.addAll(Arrays.stream(o.getContent().split("(?!^)"))
+					.map(c -> new TokenReference<>(c, o)).collect(Collectors.toList()));
+				if(origIterator.hasNext())
+					original.add(new TokenReference<>(" ", null));
+			}
+			Iterator<Token> revIterator = content.getRevised().iterator();
+			while(revIterator.hasNext()) {
+				Token r = revIterator.next();
+				revised.addAll(Arrays.stream(r.getContent().split("(?!^)"))
+					.map(c -> new TokenReference<>(c, r)).collect(Collectors.toList()));
+				if(revIterator.hasNext())
+					revised.add(new TokenReference<>(" ", null));
+			}
+		}
+	
+		Patch<TokenReference<String>> annotationPatch = DiffUtils.diff(original, revised);
+		// Add equals deltas
+		int origIndex = -1;
+		int revIndex = -1;
+		
+		System.out.println(">>>>>>>>>>>>>>>>>>>>>>");
+		System.out.println("'"+original.stream().map(o -> o.getReference()).collect(Collectors.joining(""))+"'");
+		System.out.println("----------------------");
+		System.out.println("'"+revised.stream().map(o -> o.getReference()).collect(Collectors.joining(""))+"'");
+		System.out.println("<<<<<<<<<<<<<<<<<<<<<<");
+
+		for (Delta<TokenReference<String>> delta : annotationPatch.getDeltas()) {
+			int origStart = delta.getOriginal().getPosition();
+			int revStart = delta.getRevised().getPosition();
+			
+			if (origStart > origIndex + 1 || revStart > revIndex + 1) {
+				// Add Equal Content between diffs
+				
+			}
+			
+			
+			TYPE type = delta.getType();
+			if (type.equals(TYPE.INSERT)) {
+				Chunk<TokenReference<String>> insert = delta.getRevised();
+				for(TokenReference<String> r: insert.getLines())
+					System.out.println("+ \'"+r.getReference()+"\'");
+			}
+
+			if (type.equals(TYPE.DELETE)) {
+				Chunk<TokenReference<String>> delete = delta.getOriginal();
+				for(TokenReference<String> r: delete.getLines())
+					System.out.println("- \'"+r.getReference()+"\'");
+			}
+
+			if (type.equals(TYPE.CHANGE)) {
+				Chunk<TokenReference<String>> insert = delta.getRevised();
+				Chunk<TokenReference<String>> delete = delta.getOriginal();
+				for(TokenReference<String> r: insert.getLines())
+					System.out.println("~+ \'"+r.getReference()+"\'");
+				for(TokenReference<String> r: delete.getLines())
+					System.out.println("~- \'"+r.getReference()+"\'");
+			}
+			origStart = delta.getOriginal().last();
+			revStart = delta.getRevised().last();
+		}
+		
+		
+		
 		return contents;
 	}
 	/**

@@ -1,5 +1,7 @@
 package de.uniwue.compare;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 public class SpecialCharacter {
 	/**
 	 * Tokens are separated by spaces, but Java does not include 
@@ -34,4 +36,37 @@ public class SpecialCharacter {
 	 * Can be used to test if a character is a space e.g. 'character.matches(SPACES_REGEX)'
 	 */
 	public static final String SPACES_REGEX = "["+String.join("", SPACES)+"]";
+	
+	/**
+	 * Lines are separated by line breaks, but Java does not include 
+	 * all types of line breaks in regex '\s'.
+	 * This array consists of all types of line breaks derived from
+	 * https://en.wikipedia.org/wiki/Whitespace_character
+	 */
+	public static final String[] LINE_BREAKS = new String[] {
+			"\n",		// LINE FEED
+			"\u000B",	// LINE TABULATION
+			"\u000C",	// FORM FEED
+			"\r",		// CARRIAGE RETURN
+			"\u0085",	// NEXT LINE
+			"\u2028",	// LINE SEPARATOR
+			"\u2029"	// PARAGRAPH SEPARATOR
+	};
+	/**
+	 * Regex group of all LINE_BREAKS. 
+	 * Can be used to test if a character is a space e.g. 'character.matches(LINE_BREAKS_REGEX)'
+	 */
+	public static final String LINE_BREAKS_REGEX = "["+String.join("", LINE_BREAKS)+"]";
+	
+	/**
+	 * This array consists of all types of whitespaces derived from
+	 * http://jkorpela.fi/chars/spaces.html
+	 * https://en.wikipedia.org/wiki/Whitespace_character
+	 */
+	public static final String[] WHITESPACES = ArrayUtils.addAll(SPACES, LINE_BREAKS);
+	/**
+	 * Regex group of all WHITESPACES. 
+	 * Can be used to test if a character is a space e.g. 'character.matches(WHITESPACES_REGEX)'
+	 */
+	public static final String WHITESPACES_REGEX = "["+String.join("", WHITESPACES)+"]";
 }
