@@ -183,7 +183,7 @@ public class VarianceClassifier {
 		// Iterate over all changes, split connected contents with whitespace changes 
 		int origIndex = -1;
 		int revIndex = -1;
-		for (Delta<CharReference<String>> delta : whitespaceDeltas) {
+		/*for (Delta<CharReference<String>> delta : whitespaceDeltas) {
 			TYPE type = delta.getType();
 			if (type.equals(TYPE.INSERT)) {
 				Chunk<CharReference<String>> insert = delta.getRevised();
@@ -207,15 +207,15 @@ public class VarianceClassifier {
 			
 			if (origStart > origIndex + 1 || revStart > revIndex + 1) {
 				// Add Unchanged Content between diffs
-				List<CharReference<String>> unchangedOrig = original.subList(origIndex + 1, origIndex);
-				List<CharReference<String>> unchangedRev = revised.subList(revIndex + 1, revIndex);
+				List<CharReference<String>> unchangedOrig = original.subList(origIndex + 1, origStart);
+				List<CharReference<String>> unchangedRev = revised.subList(revIndex + 1, revStart);
 				
 			}
 			
 			
 			origStart = delta.getOriginal().last();
 			revStart = delta.getRevised().last();
-		}
+		}*/
 		
 		return contents;
 	}

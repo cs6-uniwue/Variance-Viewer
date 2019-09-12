@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.compare.variance.types.VarianceDistance;
@@ -30,7 +32,12 @@ public class Settings {
 	}
 	
 	
-	private void fromString(String settingsString) {
+	private void fromString(String rawString) {
+		String settingsString = Arrays.stream(rawString.split(SpecialCharacter.LINE_BREAKS_REGEX))
+									.filter(l -> !(l == null || l == "" || l.startsWith("#")))
+									.collect(Collectors.joining("\n"));
+		System.out.println(settingsString);
+		
 		Pattern settingsPattern = Pattern.compile(":(.+):((?:\\r|\\n|.)*?):(.+):");
 		Pattern complexTagPattern = Pattern.compile("(.+)\\[(.+)\\|(.+)\\]");
 		
@@ -255,21 +262,6 @@ public class Settings {
 	 * @return List with all rules 
 	 */
 	private List<String> readMissing(String settings, Integer[] startposition) {
-		List<String> converted = new ArrayList<String>();
-
-		int linecounter = 0;
-		for (String line : settings.split(System.lineSeparator())) {
-			final String linecontent = line.trim();
-			if (linecontent.matches(".*\\s+.*")) {
-				// Missing rules can not include whitespaces
-				throw new IllegalArgumentException(String.format(
-						"Missing variances rule at line %d includes whitespace. Such rules musn't include whitespaces.",
-						startposition[0] + linecounter));
-			}
-
-			linecounter++;
-		}
-
-		return converted;
+		return Arrays.asList(settings.split(SpecialCharacter.WHITESPACES_REGEX+"+"));
 	}
 }
