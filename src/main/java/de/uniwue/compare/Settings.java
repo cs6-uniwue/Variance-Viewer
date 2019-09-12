@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import de.uniwue.compare.variance.types.Variance;
@@ -36,7 +35,6 @@ public class Settings {
 		String settingsString = Arrays.stream(rawString.split(SpecialCharacter.LINE_BREAKS_REGEX))
 									.filter(l -> !(l == null || l == "" || l.startsWith("#")))
 									.collect(Collectors.joining("\n"));
-		System.out.println(settingsString);
 		
 		Pattern settingsPattern = Pattern.compile(":(.+):((?:\\r|\\n|.)*?):(.+):");
 		Pattern complexTagPattern = Pattern.compile("(.+)\\[(.+)\\|(.+)\\]");

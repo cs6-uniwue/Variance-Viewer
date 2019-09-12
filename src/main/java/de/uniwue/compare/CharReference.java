@@ -1,7 +1,5 @@
 package de.uniwue.compare;
 
-import de.uniwue.compare.token.Token;
-
 /**
  * A token reference to compare objects that reference a token.
  *
@@ -24,32 +22,32 @@ public class CharReference<T> {
 
 	
 	private final T reference;
-	private final Token token;
-	private final ConnectedContent connection;
+	private final int tokenIndex;
+	private final boolean isSeparator;
 
-	public CharReference(T reference, Token token, ConnectedContent connection) {
+	public CharReference(T reference, int tokenIndex, boolean isSeparator) {
 		if(reference == null)
 			throw new NullPointerException("The pointer of a token reference can not be null.");
 		this.reference = reference;
-		this.token = token;
-		this.connection = connection;
+		this.tokenIndex = tokenIndex;
+		this.isSeparator = isSeparator;
 	}
 	
 	public T getReference() {
 		return reference;
 	}
 
-	public Token getToken() {
-		return token;
+	public int getTokenIndex() {
+		return tokenIndex;
 	}
 
-	public ConnectedContent getConnection() {
-		return connection;
-	}
+	public boolean isSeparator() {
+		return isSeparator;
+	}	
 	
 	@Override
 	public String toString() {
-		return String.format("['%s' -> %s ]", this.reference, token);
+		return String.format("['%s' -> %d ]", this.reference, tokenIndex);
 	}
 
 	@Override

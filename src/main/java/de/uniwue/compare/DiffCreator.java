@@ -168,7 +168,8 @@ public class DiffCreator {
 						unequalTokensRevised.forEach(t -> t.highlightEverything());
 
 						// Add to last content (if of same type) or create new content
-						curContent = addContent(unequalTokensOriginal, unequalTokensRevised, curContent, content, ContentType.CHANGE, "CONTENT");
+						curContent = addContent(unequalTokensOriginal, unequalTokensRevised, curContent, content,
+								ContentType.CHANGE, "CONTENT");
 					}
 
 					lastOriginalPosition = testDelta.getOriginal().last();
@@ -242,10 +243,7 @@ public class DiffCreator {
 		List<ConnectedContent> postcorrection = new LinkedList<>();
 		List<ConnectedContent> backlog = new LinkedList<>();
 		for (ConnectedContent c : content) {	
-			boolean isSeparation = c.getVarianceType().equals("SEPARATION") || 
-						(c.getContentType().equals(ContentType.EQUAL) && c.getOriginalAsText()
-								.matches(SpecialCharacter.WHITESPACES_REGEX+"*"));
-			if (c.getVarianceType().equals("CONTENT") || isSeparation) {
+			if (c.getVarianceType().equals("CONTENT")) {
 				backlog.add(c);
 			} else {
 				if (backlog.size() > 0) {

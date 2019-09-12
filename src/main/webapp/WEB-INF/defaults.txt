@@ -101,7 +101,7 @@ cu ku
 5
 :Separation:
 
-:OneDifference[DISTANCE|#b7ff00]:
+:OneDifference[DISTANCE|#a3e302]:
 0 1
 :OneDifference:
 

@@ -2,11 +2,10 @@ package de.uniwue.compare.variance;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -26,12 +25,10 @@ import de.uniwue.compare.variance.types.VarianceMissing;
 import de.uniwue.compare.variance.types.VarianceReplacement;
 import de.uniwue.compare.variance.types.VarianceSeparation;
 import de.uniwue.compare.variance.types.VarianceTypography;
-import difflib.Chunk;
 import difflib.Delta;
 import difflib.Delta.TYPE;
 import difflib.DiffUtils;
 import difflib.Patch;
-import difflib.myers.Equalizer;
 
 public class VarianceClassifier {
 
@@ -128,97 +125,133 @@ public class VarianceClassifier {
 	}
 
 	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
+		for(ConnectedContent content: contents) {
+			if(!content.getVarianceType().equals("CONTENT")) {
+				throw new IllegalArgumentException(
+						String.format("Unable to classify ConnectedContents '%s'. "+
+										"ConnectedContents must be of VarianceType 'CONTENT' or be a separation",
+										content.getVarianceType()));
+			}
+		}
+
 		List<ConnectedContent> classified = new ArrayList<>();
+
+		// Combine connected contents
+		List<Token> originalToken = new ArrayList<>();
+		List<Token> revisedToken = new ArrayList<>();
+		for(ConnectedContent content : contents) {
+			originalToken.addAll(content.getOriginal());
+			revisedToken.addAll(content.getRevised());
+		}
 		
 		// Separate tokens into characters
 		List<CharReference<String>> original = new LinkedList<>();
 		List<CharReference<String>> revised = new LinkedList<>();
-		for(ConnectedContent content : contents) {
-			Iterator<Token> origIterator = content.getOriginal().iterator();
-			while(origIterator.hasNext()) {
-				Token o = origIterator.next();
-				original.addAll(Arrays.stream(o.getContent().split("(?!^)"))
-					.map(c -> new CharReference<>(c, o, content)).collect(Collectors.toList()));
-				if(origIterator.hasNext())
-					original.add(new CharReference<>(" ", null, null));
-			}
-			Iterator<Token> revIterator = content.getRevised().iterator();
-			while(revIterator.hasNext()) {
-				Token r = revIterator.next();
-				revised.addAll(Arrays.stream(r.getContent().split("(?!^)"))
-					.map(c -> new CharReference<>(c, r, content)).collect(Collectors.toList()));
-				if(revIterator.hasNext())
-					revised.add(new CharReference<>(" ", null, content));
-			}
+		ListIterator<Token> origIterator = originalToken.listIterator();
+		while(origIterator.hasNext()) {
+			int index = origIterator.nextIndex();
+			Token o = origIterator.next();
+			original.addAll(Arrays.stream(o.getContent().split("(?!^)"))
+				.map(c -> new CharReference<>(c, index, false)).collect(Collectors.toList()));
+			if(origIterator.hasNext()) // Text separations are indexed by their predecessor
+				original.add(new CharReference<>(" ", index, true));
 		}
-	
-		
+		ListIterator<Token> revIterator = revisedToken.listIterator();
+		while(revIterator.hasNext()) {
+			int index = revIterator.nextIndex();
+			Token r = revIterator.next();
+			revised.addAll(Arrays.stream(r.getContent().split("(?!^)"))
+				.map(c -> new CharReference<>(c, index, false)).collect(Collectors.toList()));
+			if(revIterator.hasNext()) // Text separations are indexed by their predecessor
+				revised.add(new CharReference<>(" ", index, false));
+		}
+
 		// Search for whitespace changes in character based changes
 		Patch<CharReference<String>> annotationPatch = DiffUtils.diff(original, revised);
 		
-		// Filter differences for whitespace changes
-		List<Delta<CharReference<String>>> whitespaceDeltas = new ArrayList<>(); 
+		// Init tokens that may be split
+		Set<Integer> separatedOriginal = new HashSet<>();
+		Set<Integer> separatedRevised = new HashSet<>();
+		for(int i=0; i  < originalToken.size(); i++) 
+			separatedOriginal.add(i);
+		for(int i=0; i  < revisedToken.size(); i++) 
+			separatedRevised.add(i);
+		
+		// Test all differences and remove every token that is changed by more than a separation
 		for (Delta<CharReference<String>> delta : annotationPatch.getDeltas()) {
 			// Search for deletions and insert, for separations
 			TYPE type = delta.getType();
-			Chunk<CharReference<String>> chunk = null;
-			if (type.equals(TYPE.INSERT)) 
-				chunk = delta.getRevised();
-			else if(type.equals(TYPE.DELETE)) 
-				chunk = delta.getOriginal();
-			else 
-				continue;
-
-			// Check for everything other than whitespace changes
-			for(CharReference<String> r: chunk.getLines()) {
-				if (!r.getReference().matches(SpecialCharacter.WHITESPACES_REGEX+"+")) {
-					continue;
-				}
-			}
-			// Add to whitespace changes, since the only changes in this Delta are
-			// the insertion or deletion of whitespaces
-			whitespaceDeltas.add(delta);
-		}
-		
-		// Iterate over all changes, split connected contents with whitespace changes 
-		int origIndex = -1;
-		int revIndex = -1;
-		/*for (Delta<CharReference<String>> delta : whitespaceDeltas) {
-			TYPE type = delta.getType();
 			if (type.equals(TYPE.INSERT)) {
-				Chunk<CharReference<String>> insert = delta.getRevised();
-				for(CharReference<String> r: insert.getLines()) {
+				// Check if this delta describes a split and remove every token that
+				// is change otherwise
+				for(CharReference<String> r: delta.getRevised().getLines()) {
 					if (!r.getReference().matches(SpecialCharacter.WHITESPACES_REGEX+"+")) {
-						continue;
+						separatedRevised.remove(r.getTokenIndex());
 					}
 				}
-				whitespaceDeltas.add(delta);
+			} else if(type.equals(TYPE.DELETE)) {
+				// Check if this delta describes a split and remove every token that
+				// is change otherwise
+				for(CharReference<String> r: delta.getOriginal().getLines()) {
+					if (!r.getReference().matches(SpecialCharacter.WHITESPACES_REGEX+"+")) {
+						separatedOriginal.remove(r.getTokenIndex());
+					}
+				}
+			} else if(type.equals(TYPE.CHANGE)) { 
+				// Set delta not not being a split and remove all changed tokens
+				for(CharReference<String> r: delta.getRevised().getLines()) 
+					separatedRevised.remove(r.getTokenIndex());
+				for(CharReference<String> r: delta.getOriginal().getLines()) 
+					separatedOriginal.remove(r.getTokenIndex());
 			}
-
-			if (type.equals(TYPE.DELETE)) {
-				Chunk<CharReference<String>> delete = delta.getOriginal();
-				for(CharReference<String> r: delete.getLines())
-					System.out.println("- \'"+r.getReference()+"\'");
-			}
-
-
-			int origStart = delta.getOriginal().getPosition();
-			int revStart = delta.getRevised().getPosition();
-			
-			if (origStart > origIndex + 1 || revStart > revIndex + 1) {
-				// Add Unchanged Content between diffs
-				List<CharReference<String>> unchangedOrig = original.subList(origIndex + 1, origStart);
-				List<CharReference<String>> unchangedRev = revised.subList(revIndex + 1, revStart);
-				
-			}
-			
-			
-			origStart = delta.getOriginal().last();
-			revStart = delta.getRevised().last();
-		}*/
+		}
 		
-		return contents;
+		// Create new Connected Contents
+		origIterator = originalToken.listIterator();
+		revIterator = revisedToken.listIterator();
+		while(origIterator.hasNext() || revIterator.hasNext()) {
+			List<Token> currentOrig = new ArrayList<>();
+			List<Token> currentRev = new ArrayList<>();
+			while(origIterator.hasNext() 
+					&& !separatedOriginal.contains(origIterator.nextIndex())) {
+				currentOrig.add(origIterator.next());
+			}
+			while(revIterator.hasNext() 
+					&& !separatedRevised.contains(revIterator.nextIndex())) {
+				currentRev.add(revIterator.next());
+			}
+			// Add all content not separated by whitespace 
+			if(currentOrig.size() > 0 && currentRev.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, "CONTENT"));
+			} else if (currentOrig.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, "CONTENT"));
+			} else if (currentRev.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, "CONTENT"));
+			}
+			currentOrig = new ArrayList<>();
+			currentRev = new ArrayList<>();
+			
+			while(origIterator.hasNext() 
+					&& separatedOriginal.contains(origIterator.nextIndex())) {
+				currentOrig.add(origIterator.next());
+			}
+			while(revIterator.hasNext() 
+					&& separatedRevised.contains(revIterator.nextIndex())) {
+				currentRev.add(revIterator.next());
+			}
+			// Add all content not separated by whitespace 
+			if(currentOrig.size() > 0 && currentRev.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, "SEPARATION"));
+			} else if (currentOrig.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, "CONTENT"));
+			} else if (currentRev.size() > 0) {
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, "CONTENT"));
+			}
+		}
+		
+		return classified;
 	}
+	
 	/**
 	 * Normalize tokens to check for different variance types. E.g. "Test" "Test."
 	 * can both be normalized to "Test", which helps to identify underlying variance

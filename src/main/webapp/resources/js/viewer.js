@@ -2,9 +2,8 @@
  **************** GUI ******************
  ***************************************/
 let deselected = [];
-let deselectedTypes = ["SEPARATION"];
+let deselectedTypes = [""];
 let remove = [];
-let removeTypes = ["PARATEXT"];
 
 let displaySwitches = document.querySelectorAll(".display-switch");
 displaySwitches.forEach(function (displaySwitch) {
@@ -13,9 +12,6 @@ displaySwitches.forEach(function (displaySwitch) {
 
     if (deselectedTypes.indexOf(variancetype) > -1)
         deselected.push(displaySwitch);
-
-    if (removeTypes.indexOf(variancetype) > -1)
-        remove.push(wrapper);
 
     displaySwitch.addEventListener("change", function () {
         let lines = document.querySelectorAll(".line-fragment." + variancetype);

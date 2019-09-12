@@ -23,7 +23,6 @@
 				<span class="highlight ${token.getAnnotationsString()}">
 					<c:set var="highlightedText" value="${content.substring(highlight[0],highlight[1])}"/>
 					<c:out value="${highlightedText}"/>
-					<c:if test="${token.getVarianceType() eq 'SEPARATION' && highlightedText.length() > 0 && highlightedText.trim().length() == 0}">&nbsp;</c:if>
 				</span>
 				<c:if test="${status.isLast() && highlight[1] < content.length()}">
 					<span class="${annotation}"><c:out value="${content.substring(highlight[1])}"/></span>

@@ -66,7 +66,6 @@ public class DiffExporter {
 			if(outputVarianceTypes.contains(content.getVarianceType())) {
 				switch (content.getContentType()) {
 				case CHANGE:
-					//System.out.println(content.getRevisedAsText());
 					text = insertRevised(text, content.getRevisedAsText(),
 							(int) (totalDelta + content.getOriginal().peekLast().getEnd()));
 					final int changeId = idCounter++;
