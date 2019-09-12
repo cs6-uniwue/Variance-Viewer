@@ -2,17 +2,21 @@ package de.uniwue.compare.variance;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import de.uniwue.compare.CharReference;
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
+import de.uniwue.compare.SpecialCharacter;
 import de.uniwue.compare.token.Token;
-import de.uniwue.compare.token.TokenReference;
 import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.compare.variance.types.VarianceContent;
 import de.uniwue.compare.variance.types.VarianceDistance;
@@ -27,6 +31,7 @@ import difflib.Delta;
 import difflib.Delta.TYPE;
 import difflib.DiffUtils;
 import difflib.Patch;
+import difflib.myers.Equalizer;
 
 public class VarianceClassifier {
 
@@ -123,76 +128,94 @@ public class VarianceClassifier {
 	}
 
 	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
-		System.out.println("**********************");
+		List<ConnectedContent> classified = new ArrayList<>();
+		
 		// Separate tokens into characters
-		List<TokenReference<String>> original = new LinkedList<>();
-		List<TokenReference<String>> revised = new LinkedList<>();
+		List<CharReference<String>> original = new LinkedList<>();
+		List<CharReference<String>> revised = new LinkedList<>();
 		for(ConnectedContent content : contents) {
 			Iterator<Token> origIterator = content.getOriginal().iterator();
 			while(origIterator.hasNext()) {
 				Token o = origIterator.next();
 				original.addAll(Arrays.stream(o.getContent().split("(?!^)"))
-					.map(c -> new TokenReference<>(c, o)).collect(Collectors.toList()));
+					.map(c -> new CharReference<>(c, o, content)).collect(Collectors.toList()));
 				if(origIterator.hasNext())
-					original.add(new TokenReference<>(" ", null));
+					original.add(new CharReference<>(" ", null, null));
 			}
 			Iterator<Token> revIterator = content.getRevised().iterator();
 			while(revIterator.hasNext()) {
 				Token r = revIterator.next();
 				revised.addAll(Arrays.stream(r.getContent().split("(?!^)"))
-					.map(c -> new TokenReference<>(c, r)).collect(Collectors.toList()));
+					.map(c -> new CharReference<>(c, r, content)).collect(Collectors.toList()));
 				if(revIterator.hasNext())
-					revised.add(new TokenReference<>(" ", null));
+					revised.add(new CharReference<>(" ", null, content));
 			}
 		}
 	
-		Patch<TokenReference<String>> annotationPatch = DiffUtils.diff(original, revised);
-		// Add equals deltas
+		
+		// Search for whitespace changes in character based changes
+		Patch<CharReference<String>> annotationPatch = DiffUtils.diff(original, revised);
+		
+		// Filter differences for whitespace changes
+		List<Delta<CharReference<String>>> whitespaceDeltas = new ArrayList<>(); 
+		for (Delta<CharReference<String>> delta : annotationPatch.getDeltas()) {
+			// Search for deletions and insert, for separations
+			TYPE type = delta.getType();
+			Chunk<CharReference<String>> chunk = null;
+			if (type.equals(TYPE.INSERT)) 
+				chunk = delta.getRevised();
+			else if(type.equals(TYPE.DELETE)) 
+				chunk = delta.getOriginal();
+			else 
+				continue;
+
+			// Check for everything other than whitespace changes
+			for(CharReference<String> r: chunk.getLines()) {
+				if (!r.getReference().matches(SpecialCharacter.WHITESPACES_REGEX+"+")) {
+					continue;
+				}
+			}
+			// Add to whitespace changes, since the only changes in this Delta are
+			// the insertion or deletion of whitespaces
+			whitespaceDeltas.add(delta);
+		}
+		
+		// Iterate over all changes, split connected contents with whitespace changes 
 		int origIndex = -1;
 		int revIndex = -1;
-		
-		System.out.println(">>>>>>>>>>>>>>>>>>>>>>");
-		System.out.println("'"+original.stream().map(o -> o.getReference()).collect(Collectors.joining(""))+"'");
-		System.out.println("----------------------");
-		System.out.println("'"+revised.stream().map(o -> o.getReference()).collect(Collectors.joining(""))+"'");
-		System.out.println("<<<<<<<<<<<<<<<<<<<<<<");
+		for (Delta<CharReference<String>> delta : whitespaceDeltas) {
+			TYPE type = delta.getType();
+			if (type.equals(TYPE.INSERT)) {
+				Chunk<CharReference<String>> insert = delta.getRevised();
+				for(CharReference<String> r: insert.getLines()) {
+					if (!r.getReference().matches(SpecialCharacter.WHITESPACES_REGEX+"+")) {
+						continue;
+					}
+				}
+				whitespaceDeltas.add(delta);
+			}
 
-		for (Delta<TokenReference<String>> delta : annotationPatch.getDeltas()) {
+			if (type.equals(TYPE.DELETE)) {
+				Chunk<CharReference<String>> delete = delta.getOriginal();
+				for(CharReference<String> r: delete.getLines())
+					System.out.println("- \'"+r.getReference()+"\'");
+			}
+
+
 			int origStart = delta.getOriginal().getPosition();
 			int revStart = delta.getRevised().getPosition();
 			
 			if (origStart > origIndex + 1 || revStart > revIndex + 1) {
-				// Add Equal Content between diffs
+				// Add Unchanged Content between diffs
+				List<CharReference<String>> unchangedOrig = original.subList(origIndex + 1, origIndex);
+				List<CharReference<String>> unchangedRev = revised.subList(revIndex + 1, revIndex);
 				
 			}
 			
 			
-			TYPE type = delta.getType();
-			if (type.equals(TYPE.INSERT)) {
-				Chunk<TokenReference<String>> insert = delta.getRevised();
-				for(TokenReference<String> r: insert.getLines())
-					System.out.println("+ \'"+r.getReference()+"\'");
-			}
-
-			if (type.equals(TYPE.DELETE)) {
-				Chunk<TokenReference<String>> delete = delta.getOriginal();
-				for(TokenReference<String> r: delete.getLines())
-					System.out.println("- \'"+r.getReference()+"\'");
-			}
-
-			if (type.equals(TYPE.CHANGE)) {
-				Chunk<TokenReference<String>> insert = delta.getRevised();
-				Chunk<TokenReference<String>> delete = delta.getOriginal();
-				for(TokenReference<String> r: insert.getLines())
-					System.out.println("~+ \'"+r.getReference()+"\'");
-				for(TokenReference<String> r: delete.getLines())
-					System.out.println("~- \'"+r.getReference()+"\'");
-			}
 			origStart = delta.getOriginal().last();
 			revStart = delta.getRevised().last();
 		}
-		
-		
 		
 		return contents;
 	}

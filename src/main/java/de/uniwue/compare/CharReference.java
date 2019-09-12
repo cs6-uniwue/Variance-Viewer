@@ -1,4 +1,6 @@
-package de.uniwue.compare.token;
+package de.uniwue.compare;
+
+import de.uniwue.compare.token.Token;
 
 /**
  * A token reference to compare objects that reference a token.
@@ -18,17 +20,19 @@ package de.uniwue.compare.token;
  *
  * @param <T> Token reference to compare
  */
-public class TokenReference<T> {
+public class CharReference<T> {
 
 	
 	private final T reference;
 	private final Token token;
+	private final ConnectedContent connection;
 
-	public TokenReference(T reference, Token token) {
+	public CharReference(T reference, Token token, ConnectedContent connection) {
 		if(reference == null)
 			throw new NullPointerException("The pointer of a token reference can not be null.");
 		this.reference = reference;
 		this.token = token;
+		this.connection = connection;
 	}
 	
 	public T getReference() {
@@ -39,6 +43,10 @@ public class TokenReference<T> {
 		return token;
 	}
 
+	public ConnectedContent getConnection() {
+		return connection;
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("['%s' -> %s ]", this.reference, token);
@@ -49,8 +57,8 @@ public class TokenReference<T> {
 		if (this == obj)
 			return true;
 
-		if(obj instanceof TokenReference<?>) {
-			TokenReference<?> other = (TokenReference<?>) obj;
+		if(obj instanceof CharReference<?>) {
+			CharReference<?> other = (CharReference<?>) obj;
 			return this.reference.equals(other.getReference());
 		} else {
 			return false;
