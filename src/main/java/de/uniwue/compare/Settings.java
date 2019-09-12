@@ -111,7 +111,7 @@ public class Settings {
 						externalCss = settingBody;
 						break;
 					case "contenttags":
-						contentTags = Arrays.asList(settingBody.trim().split(System.lineSeparator()));
+						contentTags = Arrays.asList(settingBody.trim().split(SpecialCharacter.WHITESPACES_REGEX));
 						break;
 					// Legacy settings
 					case "punctuations":
