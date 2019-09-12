@@ -158,7 +158,7 @@ public class NavigationController {
 		return "redirect:/";
 	}
 
-	@RequestMapping(value = "/default", method = RequestMethod.GET)
+	@RequestMapping(value = "/default.txt", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> defaultSettings(Model model) {
 		final String defaultSettings = StorageManager.getDefault(servletContext);
 		final byte[] settingsBytes = defaultSettings.getBytes();

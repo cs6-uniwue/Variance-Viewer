@@ -11,7 +11,7 @@
 			<input id="file1" name="file1" type="file"><br>
 			<input name="file2" type="file"><br>
 			<hr>
-			Settings file (uses <a href="default" download>default<u>⇓</u></a> if empty):</br>
+			Settings file (uses <a href="default.txt" download>default<u>⇓</u></a> if empty):</br>
 			<input name="settingsFile" type="file" accept=".txt, .conf"><br>
 			<hr>
 			<input type="submit" value="Compare">

@@ -260,6 +260,7 @@ public class Settings {
 	 * @return List with all rules 
 	 */
 	private List<String> readMissing(String settings, Integer[] startposition) {
-		return Arrays.asList(settings.split(SpecialCharacter.WHITESPACES_REGEX+"+"));
+		return Arrays.stream(settings.split(SpecialCharacter.WHITESPACES_REGEX+"+"))
+			.filter(s -> !s.isEmpty()).collect(Collectors.toList());
 	}
 }
