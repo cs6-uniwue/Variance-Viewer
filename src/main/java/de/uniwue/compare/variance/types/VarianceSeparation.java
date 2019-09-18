@@ -11,8 +11,8 @@ package de.uniwue.compare.variance.types;
  */
 public class VarianceSeparation extends Variance{
 	
-	public VarianceSeparation(String tag, String color, int priority, int seperations) {
-		super(tag, VarianceType.SEPARATION, color, priority);
+	public VarianceSeparation(String color, int priority) {
+		super("SEPARATION", VarianceType.SEPARATION, color, priority);
 	}
 	
 }

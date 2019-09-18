@@ -97,10 +97,6 @@ cu ku
 :Abbreviations[REPLACEMENT|#d35ae8]:
 :Abbreviations:
 
-:Separation[SEPARATION|#5ae8e8]:
-5
-:Separation:
-
 :OneDifference[DISTANCE|#a3e302]:
 0 1
 :OneDifference:

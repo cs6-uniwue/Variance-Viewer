@@ -7,12 +7,16 @@ import java.util.List;
  * Variance with predefined types and user defined names 
  */
 public class Variance {
-
 	protected final String name;
 	protected final VarianceType type;
 	protected final String color;
 	protected final int priority;
 	
+	// Base types
+	public static final VarianceTypography TYPOGRAPHY = new VarianceTypography("#03a9f4", 0);
+	public static final VarianceContent CONTENT = new VarianceContent("#8bc34a",0);
+	public static final VarianceLineSeparation LINESEPARATION = new VarianceLineSeparation("#e0e1e0",0);
+	public static final VarianceSeparation SEPARATION = new VarianceSeparation("#5ae8e8",0);
 	
 	public Variance(String name, VarianceType type, String color, int priority) {
 		this.name = name;
@@ -68,9 +72,7 @@ public class Variance {
 	
 	public static List<Variance> getBaseVariances() {
 		return Arrays.asList(new Variance[] {
-				new VarianceTypography("#03a9f4", 0),
-				new VarianceContent("#8bc34a",0),
-				new VarianceLineSeparation("#e0e1e0",0)
+				TYPOGRAPHY, CONTENT, LINESEPARATION, SEPARATION
 		});
 	}
 	

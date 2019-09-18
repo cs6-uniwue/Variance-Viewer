@@ -13,7 +13,6 @@ import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.compare.variance.types.VarianceDistance;
 import de.uniwue.compare.variance.types.VarianceMissing;
 import de.uniwue.compare.variance.types.VarianceReplacement;
-import de.uniwue.compare.variance.types.VarianceSeparation;
 
 public class Settings {
 
@@ -95,10 +94,6 @@ public class Settings {
 					case "d":
 						final Integer[] range = readIntegerRange(settingBody, textposition);
 						variances.add(new VarianceDistance(tag, color, 0, range[0], range[1]));
-						break;
-					case "separation":
-					case "s":
-						variances.add(new VarianceSeparation(tag, color, 0, readInteger(settingBody, textposition)));
 						break;
 					default:
 						throw new IllegalArgumentException(String.format(
@@ -184,22 +179,6 @@ public class Settings {
 		return new Integer[] {line, column};
 	}
 	
-	/**
-	 * Read an integer value of a setting 
-	 * 
-	 * @param settings Settings body in between a tags start and end
-	 * @return number value provided
-	 */
-	private Integer readInteger(String settings, Integer[] startposition) {
-		try{
-			return Integer.parseInt(settings.trim());
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(String.format(
-					"Settings body at line %d must consist of an integer number (whitespace around are allowed).",
-					startposition[0]));
-		}
-	}
-
 	/**
 	 * Read an integer range of a setting 
 	 * 

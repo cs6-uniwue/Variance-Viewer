@@ -143,10 +143,6 @@ cu ku
 ü ue
 :Graphemes:
 
-:Separation[SEPARATION|#5ae8e8]:
-5
-:Separation:
-
 :OneDifference[DISTANCE|#a3e302]:
 0 1
 :OneDifference:

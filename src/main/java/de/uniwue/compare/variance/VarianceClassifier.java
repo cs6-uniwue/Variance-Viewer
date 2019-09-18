@@ -125,12 +125,15 @@ public class VarianceClassifier {
 	}
 
 	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
+		final String CONTENT = Variance.CONTENT.getName();
+		final String SEPARATION = Variance.SEPARATION.getName();
+		
 		for(ConnectedContent content: contents) {
-			if(!content.getVarianceType().equals("CONTENT")) {
+			if(!content.getVarianceType().equals(CONTENT)) {
 				throw new IllegalArgumentException(
 						String.format("Unable to classify ConnectedContents '%s'. "+
-										"ConnectedContents must be of VarianceType 'CONTENT' or be a separation",
-										content.getVarianceType()));
+										"ConnectedContents must be of VarianceType '%s' or be a separation",
+										content.getVarianceType(), CONTENT));
 			}
 		}
 
@@ -222,11 +225,11 @@ public class VarianceClassifier {
 			}
 			// Add all content not separated by whitespace 
 			if(currentOrig.size() > 0 && currentRev.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, "CONTENT"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, CONTENT));
 			} else if (currentOrig.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, "CONTENT"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, CONTENT));
 			} else if (currentRev.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, "CONTENT"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, CONTENT));
 			}
 			currentOrig = new ArrayList<>();
 			currentRev = new ArrayList<>();
@@ -241,11 +244,11 @@ public class VarianceClassifier {
 			}
 			// Add all content not separated by whitespace 
 			if(currentOrig.size() > 0 && currentRev.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, "SEPARATION"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, SEPARATION));
 			} else if (currentOrig.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, "CONTENT"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, CONTENT));
 			} else if (currentRev.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, "CONTENT"));
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.INSERT, CONTENT));
 			}
 		}
 		

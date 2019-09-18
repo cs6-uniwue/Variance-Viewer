@@ -68,7 +68,7 @@ public class DiffCreator {
 
 					for (ConnectedContent annotationContent : annotationDiff) {
 						if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-							annotationContent.setVarianceType("TYPOGRAPHY");
+							annotationContent.setVarianceType(Variance.TYPOGRAPHY.getName());
 
 						// Add to last content (if of same type) or create new content
 						curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
@@ -169,7 +169,7 @@ public class DiffCreator {
 
 						// Add to last content (if of same type) or create new content
 						curContent = addContent(unequalTokensOriginal, unequalTokensRevised, curContent, content,
-								ContentType.CHANGE, "CONTENT");
+								ContentType.CHANGE, Variance.CONTENT.getName());
 					}
 
 					lastOriginalPosition = testDelta.getOriginal().last();
@@ -223,7 +223,7 @@ public class DiffCreator {
 
 				for (ConnectedContent annotationContent : annotationDiff) {
 					if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-						annotationContent.setVarianceType("TYPOGRAPHY");
+						annotationContent.setVarianceType(Variance.TYPOGRAPHY.getName());
 
 					// Add to last content (if of same type) or create new content
 					curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
@@ -243,7 +243,7 @@ public class DiffCreator {
 		List<ConnectedContent> postcorrection = new LinkedList<>();
 		List<ConnectedContent> backlog = new LinkedList<>();
 		for (ConnectedContent c : content) {	
-			if (c.getVarianceType().equals("CONTENT")) {
+			if (c.getVarianceType().equals(Variance.CONTENT.getName())) {
 				backlog.add(c);
 			} else {
 				if (backlog.size() > 0) {
@@ -388,7 +388,7 @@ public class DiffCreator {
 
 		for (Token token : tokens) {
 			token.highlightEverything();
-			String curVariance = token instanceof AnnotationToken ? "TYPOGRAPHY"
+			String curVariance = token instanceof AnnotationToken ? Variance.TYPOGRAPHY.getName()
 					: VarianceClassifier.classifySingle(token, document, curContentType, variances);
 			if (curContent == null || !curContent.getContentType().equals(curContentType)
 					|| !curContent.getVarianceType().equals(curVariance)) {
@@ -412,7 +412,7 @@ public class DiffCreator {
 	 * @param token2 Token two to highlight
 	 */
 	private static void highlightTokens(Token token1, Token token2, String varianceType) {
-		if (!varianceType.equals("TYPOGRAPHY")) {
+		if (!varianceType.equals(Variance.TYPOGRAPHY.getName())) {
 
 			List<long[]> highlightToken1 = new LinkedList<>();
 			List<long[]> highlightToken2 = new LinkedList<>();
