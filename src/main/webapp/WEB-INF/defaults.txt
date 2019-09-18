@@ -38,7 +38,7 @@
 #								=> Separation Variance with one separation between 
 #									the words "this" and "test"
 #
-# <color>: In hex-code defined color to represent a variance type
+# <color>: In hex-code defined rgb color to represent a variance type. e.g. "#ff0000" for red
 #
 # <rules/settings>: Variance specific rules and settings of the variances in <type>
 #	MISSING (M): Character (sequences) separated by whitespaces
