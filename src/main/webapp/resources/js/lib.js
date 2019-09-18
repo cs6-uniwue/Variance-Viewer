@@ -12,7 +12,7 @@ function validateForm(){
     }
 }
 
-function displayWarning(message,time=2000){
+function displayWarning(message,time=4000){
     if(!displayingWarning){
         displayingWarning = true;
         warning.innerHTML = message;

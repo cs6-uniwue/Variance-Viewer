@@ -216,6 +216,22 @@ main{
     grid-gap: 0px 10px;
     .title{
         margin-left: 10px;
+        #statistics-icon {
+            height: 1em;
+            width: 1em;
+            float: right;
+            cursor: pointer;
+            path {
+                color: $primary-color;
+                fill: $primary-color; 
+            }
+            &:hover{
+                path {
+                    color: black;
+                    fill: black; 
+                }
+            }
+        }
     }
     .pagetop{
         display: block;
@@ -278,7 +294,7 @@ footer{
 .openDownload {
     float: left;
 }
-#download,#help {
+#download, #help, #statistics {
     display:none;
     position: fixed;
     left: 50%;
@@ -294,16 +310,21 @@ footer{
     hr{
         width: 100%;
     }
-    #download-header, #help-header {
+    #download-header, #help-header, #statistics-helper {
         margin-top: 0px;
         margin-bottom: 15px;
         font-weight: 100;
         font-size: large;
     }
-    #help-body {
+    #help-body, #statistics-body {
         br{
             margin: 15px;
         }
+    }
+    #statistics-body {
+        display: grid;
+        grid-template-columns: max-content auto max-content max-content;
+        grid-gap: 4px;
     }
 
     #download-settings {
@@ -321,7 +342,7 @@ footer{
         }
     }
     
-    #download-confirm, #help-confirm {
+    #download-confirm, #help-confirm, #statistics-confirm {
         text-align: right; 
         margin-top: 15px;
     }

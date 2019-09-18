@@ -58,6 +58,7 @@ remove.forEach((ds) => ds.style.display = "none");
 /*** Download ***/
 let downloadSection = document.querySelector("#download");
 let helpSection = document.querySelector("#help");
+let statisticSection = document.querySelector("#statistics");
 let blur = document.querySelector("#blur");
 let fileNameSelect = document.querySelector("#download-filename");
 let fileTypeSelect = document.querySelector("#download-filetype");
@@ -81,6 +82,14 @@ function openHelp() {
 }
 function closeHelp() {
     helpSection.style.display = "none";
+    blur.style.display = "none";
+}
+function openStatistics() {
+    statisticSection.style.display = "block";
+    blur.style.display = "block";
+}
+function closeStatistics() {
+    statisticSection.style.display = "none";
     blur.style.display = "none";
 }
 function download() {
@@ -138,10 +147,12 @@ fileTypeSelect.addEventListener("change", () => {
 });
 document.querySelector("#download-cancel").addEventListener("click", () => closeDownload());
 document.querySelector("#help-close").addEventListener("click", () => closeHelp());
+document.querySelector("#statistics-close").addEventListener("click", () => closeStatistics());
 document.querySelector("#download-save").addEventListener("click", () => download());
 document.querySelectorAll(".openDownload").forEach((open) => open.addEventListener("click", () => openDownload()));
 document.querySelectorAll(".openHelp").forEach((open) => open.addEventListener("click", () => openHelp()));
-blur.addEventListener("click", () => {closeDownload(); closeHelp()});
+document.querySelectorAll(".openStatistics").forEach((open) => open.addEventListener("click", () => openStatistics()));
+blur.addEventListener("click", () => {closeDownload(); closeHelp(); closeStatistics()});
 
 
 /***************************************

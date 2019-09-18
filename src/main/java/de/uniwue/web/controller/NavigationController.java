@@ -29,6 +29,7 @@ import de.uniwue.compare.Diff;
 import de.uniwue.compare.DocumentType;
 import de.uniwue.compare.Settings;
 import de.uniwue.compare.variance.VarianceClassifier;
+import de.uniwue.compare.variance.VarianceStatistics;
 import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
@@ -117,6 +118,8 @@ public class NavigationController {
 					model.addAttribute("exportJSON",
 							DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
+					
+					model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
 				} else {
 					// Interpret as plain text
 					String content1 = new String(file1.getBytes(), "UTF-8");
@@ -131,6 +134,8 @@ public class NavigationController {
 					model.addAttribute("exportJSON",
 							DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
 					model.addAttribute("allLines", LineCreator.patch(differences));
+
+					model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
 				}
 				List<VarianceType> variancetypes = new ArrayList<VarianceType>();
 				for (VarianceType variancetype : VarianceType.values())
