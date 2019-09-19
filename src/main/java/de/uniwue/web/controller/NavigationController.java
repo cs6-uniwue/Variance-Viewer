@@ -55,21 +55,32 @@ public class NavigationController {
 	@RequestMapping(value = "/view", method = RequestMethod.POST)
 	public String view(Model model, @RequestParam("file1") MultipartFile file1,
 			@RequestParam("file2") MultipartFile file2,
+			@RequestParam("settings") String settingsType,
 			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
-			Settings settings;
-			if (!settingsFile.isEmpty()) {
-				try {
-					String settingsContent = StorageManager.getSettings(settingsFile, servletContext);
-					settings = new Settings(settingsContent);
-				} catch (IllegalArgumentException e) {
-					// Invalid settingsString
-					model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
+			Settings settings = null;
+			switch(settingsType) {
+			case "default":
+				settings = new Settings(StorageManager.getDefault(servletContext));
+				break;
+			case "user":
+				if (!settingsFile.isEmpty()) {
+					try {
+						settings = new Settings(StorageManager.getSettings(settingsFile, servletContext));
+					} catch (IllegalArgumentException e) {
+						// Invalid settingsString
+						model.addAttribute("warning", "Invalid settings file. " + e.getMessage() + " Redirected to home.");
+						return home(model);
+					}
+				} else {
+					model.addAttribute("warning", "User settings file was selected, but now file has been provided. Redirected to home.");
 					return home(model);
 				}
-			} else {
-				settings = new Settings(StorageManager.getDefault(servletContext));
+				break;
+			default: 
+				model.addAttribute("warning", "Unkown settings file was selected. Redirected to home.");
+				return home(model);
 			}
 
 			List<String> outputVarianceTypes = settings.getVariances().stream().map(v -> v.getName()).collect(Collectors.toList());

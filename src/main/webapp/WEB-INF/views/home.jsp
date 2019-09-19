@@ -11,17 +11,29 @@
 			<input id="file1" name="file1" type="file"><br>
 			<input name="file2" type="file"><br>
 			<hr>
-			Settings file (uses <a href="default.txt" download>default<u>⇓</u></a> if empty):</br>
-			<input name="settingsFile" type="file" accept=".txt, .conf"><br>
+			Select settings to use for the comparison or upload your own:</br>
+			<input type="radio" id="default_settings" name="settings" value="default" checked>
+			<label for="default_settings">
+				default (<a href="default.txt" download><u>⇓</u></a>)
+			</label>
+			<br>
+
+			<div id="user_settings_wrapper">
+				<input type="radio" id="user_settings" name="settings" value="user">
+				<label for="user_settings">
+					<input name="settingsFile" type="file" accept=".txt, .conf">
+				</label>
+			</div>
+			<br>
 			<hr>
 			<input type="submit" value="Compare">
 		</form>
 	</article>
 	<section id="warning"/>
-	<script type="text/javascript" src="resources/js/lib.js"></script>
+	<script type="text/javascript" src="resources/js/home.js"></script>
 	<c:if test="${warning != null}">
 		<script>
-			displayWarning('<c:out value="${warning}"></c:out>',5000);
+			displayWarning('<c:out value="${warning}"></c:out>',6000);
 		</script>
 	</c:if>
 </t:webpage>

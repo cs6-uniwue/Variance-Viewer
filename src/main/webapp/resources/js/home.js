@@ -2,12 +2,16 @@ const warning = document.getElementById("warning");
 const orig_classes = warning.className;
 let displayingWarning = false;
 
-function validateForm(){
-    const f1 = document.forms["compare-form"]["file1"].value;
-    const f2 = document.forms["compare-form"]["file2"].value;
+const form = document.forms["compare-form"]
+let lastSelectedSetting = false;
 
-    if (f1 == "" || f2 == "") {
+function validateForm(){
+    if (form["file1"].value == "" || form["file2"].value == "") {
         displayWarning("Please select two files to compare.");
+        return false;
+    }
+    if (form["settings"].value == "user" && form["settingsFile"].value == "") {
+        displayWarning("Please select a settings file, when choosing user settings.");
         return false;
     }
 }
@@ -26,4 +30,14 @@ function displayWarning(message,time=4000){
             }, 300);
         }, time);
     }
+}
+
+// Select settings listener
+form["settings"].onchange = () => {
+	const setting = form["settings"].value;
+	lastSelectedSetting = setting != "user" ? setting : lastSelectedSetting;
+}
+
+form["settingsFile"].onclick = () => {
+	document.querySelector("input[value=user]").checked = true;
 }
