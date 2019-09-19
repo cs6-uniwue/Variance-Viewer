@@ -1,7 +1,10 @@
 package de.uniwue.web.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,10 +56,12 @@ public class NavigationController {
 	}
 
 	@RequestMapping(value = "/view", method = RequestMethod.POST)
-	public String view(Model model, @RequestParam("file1") MultipartFile file1,
+	public String view(Model model,
+			@RequestParam("file1") MultipartFile file1,
 			@RequestParam("file2") MultipartFile file2,
 			@RequestParam("settings") String settingsType,
 			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
+
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
 			Settings settings = null;
@@ -83,8 +88,6 @@ public class NavigationController {
 				return home(model);
 			}
 
-			List<String> outputVarianceTypes = settings.getVariances().stream().map(v -> v.getName()).collect(Collectors.toList());
-			
 			// Compare document files
 			try {
 				String file1Type = file1.getContentType();
@@ -94,76 +97,36 @@ public class NavigationController {
 				// Base document type
 				DocumentType document1Type = file1Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
 				DocumentType document2Type = file2Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
-
+				
 				// Check for TEI document type
 				if (document1Type.equals(DocumentType.XML)) {
 					tei1Content = XMLCleaner.clean(new String(file1.getBytes(), "UTF-8"));
 					document1Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei1Content.getBytes()))
 							? DocumentType.TEI
 							: DocumentType.XML;
+				} else {
+					tei1Content = new String(file1.getBytes(), "UTF-8");
 				}
 				if (document2Type.equals(DocumentType.XML)) {
 					tei2Content = XMLCleaner.clean(new String(file2.getBytes(), "UTF-8"));
 					document2Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei2Content.getBytes()))
 							? DocumentType.TEI
 							: DocumentType.XML;
-				}
-
-				if (document1Type.equals(DocumentType.TEI) && document2Type.equals(DocumentType.TEI)) {
-					// Convert to Athen
-					TextAnnotationStruct document1 = TEIToAthenConverter
-							.convertTEIToAthen(new ByteArrayInputStream(tei1Content.getBytes()));
-					TextAnnotationStruct document2 = TEIToAthenConverter
-							.convertTEIToAthen(new ByteArrayInputStream(tei2Content.getBytes()));
-
-					Collection<Annotation> annotations1 = document1.getAnnotations().stream()
-							.map(a -> new Annotation(a)).collect(Collectors.toList());
-					Collection<Annotation> annotations2 = document2.getAnnotations().stream()
-							.map(a -> new Annotation(a)).collect(Collectors.toList());
-
-					// Find differences
-					List<ConnectedContent> differences = Diff.compareXML(document1.getText(), document2.getText(),
-							annotations1, annotations2, settings);
-
-					model.addAttribute("format", "tei");
-					model.addAttribute("exportJSON",
-							DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
-					model.addAttribute("allLines", LineCreator.patch(differences));
-					
-					model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
 				} else {
-					// Interpret as plain text
-					String content1 = new String(file1.getBytes(), "UTF-8");
-					content1 = content1.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
-					String content2 = new String(file2.getBytes(), "UTF-8");
-					content2 = content2.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
-					List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
-
-					outputVarianceTypes.remove("TYPOGRAPHY");
-					
-					model.addAttribute("format", "txt");
-					model.addAttribute("exportJSON",
-							DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
-					model.addAttribute("allLines", LineCreator.patch(differences));
-
-					model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
+					tei2Content = new String(file2.getBytes(), "UTF-8");
 				}
-				List<VarianceType> variancetypes = new ArrayList<VarianceType>();
-				for (VarianceType variancetype : VarianceType.values())
-					if (!variancetype.equals(VarianceType.NONE))
-						variancetypes.add(variancetype);
 
-				model.addAttribute("variancetypes", VarianceClassifier.sortVariances(settings.getVariances()));
-				model.addAttribute("document1name", file1.getOriginalFilename());
-				model.addAttribute("document2name", file2.getOriginalFilename());
-				model.addAttribute("document1type", document1Type);
-				model.addAttribute("document2type", document2Type);
-				model.addAttribute("externalCSS", settings.getExternalCss());
+				// Compare and create response
+				return compare(model,
+						file1.getOriginalFilename(),
+						file2.getOriginalFilename(),
+						tei1Content, tei2Content,
+						document1Type, document2Type,
+						settings);
+				
 			} catch (IOException e1) {
 				return "redirect:/404";
 			}
-
-			return "view";
 		} else {
 			return "redirect:/404";
 		}
@@ -172,6 +135,43 @@ public class NavigationController {
 	@RequestMapping(value = "/view", method = RequestMethod.GET)
 	public String view2(Model model) {
 		return "redirect:/";
+	}
+
+	@RequestMapping(value = "demo/view", method = RequestMethod.GET)
+	public String demoview(Model model, @RequestParam("demo") int demo) {
+		// Initialize
+		File file1 = null;
+		File file2 = null;
+		Settings settings;
+		DocumentType document1Type = DocumentType.PLAINTEXT;
+		DocumentType document2Type = DocumentType.PLAINTEXT;
+		final String fs = File.separator;
+		
+		// Select demo
+		switch(demo) {
+		case 0:
+			file1 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test1.txt", servletContext);
+			file2 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test2.txt", servletContext);
+			settings = new Settings(StorageManager.getDefault(servletContext));
+			break;
+		default:
+			return "redirect:/404";
+		}
+
+		// Load demo
+		try {
+			// Compare and create response
+			return compare(model,
+					file1.getName(),
+					file2.getName(),
+					new String(Files.readAllBytes(file1.toPath()), StandardCharsets.UTF_8),
+					new String(Files.readAllBytes(file2.toPath()), StandardCharsets.UTF_8),
+					document1Type, document2Type,
+					settings);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return "redirect:/404";
+		}
 	}
 
 	@RequestMapping(value = "/default.txt", method = RequestMethod.GET)
@@ -186,7 +186,7 @@ public class NavigationController {
 
 		return new ResponseEntity<byte[]>(settingsBytes, headers, HttpStatus.OK);
 	}
-
+	
 	@RequestMapping(value = "/404")
 	public String error404(Model model) {
 		model.addAttribute("warning", "Unable to find requested page. Redirected to home.");
@@ -212,4 +212,64 @@ public class NavigationController {
 		return multipartResolver;
 	}
 
+	
+	public String compare(Model model,
+			String filename1, String filename2,
+			String file1, String file2,
+			DocumentType document1Type, DocumentType document2Type,
+			Settings settings) {
+			List<String> outputVarianceTypes = settings.getVariances().stream().map(v -> v.getName()).collect(Collectors.toList());
+			
+		// Compare document files
+		if (document1Type.equals(DocumentType.TEI) && document2Type.equals(DocumentType.TEI)) {
+			// Convert to Athen
+			TextAnnotationStruct document1 = TEIToAthenConverter
+					.convertTEIToAthen(new ByteArrayInputStream(file1.getBytes()));
+			TextAnnotationStruct document2 = TEIToAthenConverter
+					.convertTEIToAthen(new ByteArrayInputStream(file2.getBytes()));
+
+			Collection<Annotation> annotations1 = document1.getAnnotations().stream()
+					.map(a -> new Annotation(a)).collect(Collectors.toList());
+			Collection<Annotation> annotations2 = document2.getAnnotations().stream()
+					.map(a -> new Annotation(a)).collect(Collectors.toList());
+
+			// Find differences
+			List<ConnectedContent> differences = Diff.compareXML(document1.getText(), document2.getText(),
+					annotations1, annotations2, settings);
+
+			model.addAttribute("exportJSON",
+					DiffExporter.convertToAthenJSONString(document1, differences, outputVarianceTypes));
+			model.addAttribute("allLines", LineCreator.patch(differences));
+			
+			model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
+		} else {
+			// Interpret as plain text
+			String content1 = file1;
+			content1 = content1.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
+			String content2 = file2;
+			content2 = content2.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
+			List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
+
+			outputVarianceTypes.remove("TYPOGRAPHY");
+			
+			model.addAttribute("exportJSON",
+					DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
+			model.addAttribute("allLines", LineCreator.patch(differences));
+
+			model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
+
+			List<VarianceType> variancetypes = new ArrayList<VarianceType>();
+			for (VarianceType variancetype : VarianceType.values())
+				if (!variancetype.equals(VarianceType.NONE))
+					variancetypes.add(variancetype);
+
+			model.addAttribute("variancetypes", VarianceClassifier.sortVariances(settings.getVariances()));
+			model.addAttribute("document1name", filename1);
+			model.addAttribute("document2name", filename2);
+			model.addAttribute("document1type", document1Type);
+			model.addAttribute("document2type", document2Type);
+			model.addAttribute("externalCSS", settings.getExternalCss());
+		}
+		return "view";
+	}
 }

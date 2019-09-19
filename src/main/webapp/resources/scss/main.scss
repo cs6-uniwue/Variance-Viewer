@@ -91,7 +91,7 @@ main{
     }
 }
 
-.file-upload{
+.file-upload, .demos{
     margin: 30px 5px;
     input[type=file], input[type=submit]{
         margin: 3px;
@@ -149,6 +149,44 @@ main{
     animation-duration: 0.4s;
 }
 
+.tabs {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    display:flex;
+    border-radius: 15px;
+    .tablink {
+        background-color: inherit;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        transition: 0.3s;
+        flex-grow: 1;
+        &:hover {
+            background-color: #ddd;
+        }
+
+        &.selected {
+            background-color: #aaa;
+            color: white;
+        }
+    }
+}
+
+.tabcontent {
+    display: none;
+    padding: 10px 5px;
+    &.selected {
+        display: block;
+        animation: fade-in 1s;
+    }
+}
+
+@keyframes fade-in {
+    from {opacity:0}
+    to {opacity:1}
+}
+
 #legend{
     position: fixed;
     bottom: 0;
@@ -158,6 +196,20 @@ main{
     padding: 7px;
     background-color: white;
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.3); 
+    button {
+       cursor: pointer; 
+    }
+    #statistics-info {
+        float:left;
+        #statistics-icon {
+            height: 1em;
+            width: 1em;
+            path {
+                color: black;
+                fill: black; 
+            }
+        }
+    }
 }
 .display-switches{
     list-style:none outside none;
@@ -223,22 +275,6 @@ main{
     grid-gap: 0px 10px;
     .title{
         margin-left: 10px;
-        #statistics-icon {
-            height: 1em;
-            width: 1em;
-            float: right;
-            cursor: pointer;
-            path {
-                color: $primary-color;
-                fill: $primary-color; 
-            }
-            &:hover{
-                path {
-                    color: black;
-                    fill: black; 
-                }
-            }
-        }
     }
     .pagetop{
         display: block;
@@ -375,7 +411,7 @@ footer{
 }
 
 @media screen and(min-width: 34em){
-    .file-upload{
+    .file-upload, .demos{
         width: 70%;
         max-width: 800px;
         margin: 30px auto;
@@ -396,7 +432,8 @@ footer{
             margin: 0px;
         }
     }
-    .openDownload {display: none}
+    .openDownload, #statistics-info {display: none}
+
     .trimmed{
         *{font-size: $default-font-size-print}
     }

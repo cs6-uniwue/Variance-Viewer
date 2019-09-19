@@ -41,3 +41,21 @@ form["settings"].onchange = () => {
 form["settingsFile"].onclick = () => {
 	document.querySelector("input[value=user]").checked = true;
 }
+
+// Tabs
+const tablinks = document.querySelectorAll(".tablink");
+const tabcontents = document.querySelectorAll(".tabcontent");
+for(const tablink of tablinks){
+	// Add listeners
+	tablink.onclick = function() {
+		// Clear
+		for(const content of tabcontents) 
+			content.classList.remove("selected");
+		for(const l of tablinks) 
+			l.classList.remove("selected");
+
+		// Select
+		this.classList.add("selected")
+		document.querySelector(`#${this.dataset["target"]}`).classList.add("selected");
+	}
+}
