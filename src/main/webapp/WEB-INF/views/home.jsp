@@ -34,7 +34,9 @@
 	<article class="demos">
 		<h1>Demos</h1>
 		<hr>
-		<a href="demo/view?demo=0">Demo 1</a>
+		<ul id="demo-list">
+		<li><a href="demo/view?demo=0">Demo 1</a></li>
+		</ul>
 	</article>
 
 	<section id="warning"/>
