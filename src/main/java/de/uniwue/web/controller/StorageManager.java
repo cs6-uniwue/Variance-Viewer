@@ -45,7 +45,7 @@ public class StorageManager {
 		}
 		return "";
 	}
-	
+
 	public static File getFile(String path, ServletContext servletContext) {
 			return new File(servletContext.getRealPath("WEB-INF" + File.separator + path));
 	}

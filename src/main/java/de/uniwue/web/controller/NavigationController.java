@@ -1,6 +1,7 @@
 package de.uniwue.web.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.servlet.ServletContext;
 
@@ -20,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -173,7 +177,55 @@ public class NavigationController {
 			return "redirect:/404";
 		}
 	}
+	
+	@RequestMapping(value = "demo/download/demo{demo}.zip", method = RequestMethod.GET)
+	public ResponseEntity<byte[]> downloaddemo(Model model, @PathVariable("demo") int demo) {
+		// Initialize
+		HttpHeaders headers = new HttpHeaders();
+		headers.setCacheControl("no-cache");
+		File file1 = null;
+		File file2 = null;
+		File settings;
+		final String fs = File.separator;
+		
+		// Select demo
+		switch(demo) {
+		case 0:
+			file1 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test1.txt", servletContext);
+			file2 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test2.txt", servletContext);
+			settings = StorageManager.getFile("defaults.txt", servletContext);
+			break;
+		default:
+			return new ResponseEntity<byte[]>(new byte[0], headers, HttpStatus.BAD_REQUEST);
+		}
 
+		try {
+		    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		    ZipOutputStream zip = new ZipOutputStream(baos);
+		    addToZip(zip, file1);
+		    addToZip(zip, file2);
+		    addToZip(zip, settings);
+		    zip.close();
+    		
+			headers.setContentType(MediaType.TEXT_PLAIN);
+			headers.setContentLength(baos.toByteArray().length);
+			return new ResponseEntity<byte[]>(baos.toByteArray(), headers, HttpStatus.OK);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<byte[]>(new byte[0], headers, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	private void addToZip(ZipOutputStream zip, File file) throws IOException {
+		    byte[] filebyte = Files.readAllBytes(file.toPath());
+		    ZipEntry entry = new ZipEntry(file.getName());
+		    entry.setSize(filebyte.length);
+		    
+		    zip.putNextEntry(entry);
+		    zip.write(filebyte);
+		    zip.closeEntry();
+	}
+	
 	@RequestMapping(value = "/default.txt", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> defaultSettings(Model model) {
 		final String defaultSettings = StorageManager.getDefault(servletContext);
