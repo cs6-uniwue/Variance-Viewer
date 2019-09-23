@@ -1,5 +1,6 @@
 package de.uniwue.compare;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +11,7 @@ import de.uniwue.compare.token.Token;
 import de.uniwue.compare.token.VarianceToken;
 import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.types.Variance;
+import de.uniwue.compare.variance.types.VarianceType;
 import difflib.Chunk;
 import difflib.Delta;
 import difflib.Delta.TYPE;
@@ -243,13 +245,19 @@ public class DiffCreator {
 		// Test all consecutive connected components of type "CONTENT"
 		List<ConnectedContent> postcorrection = new LinkedList<>();
 		List<ConnectedContent> backlog = new LinkedList<>();
+		List<String> backlogVariances = new ArrayList<>();
+		backlogVariances.add(Variance.CONTENT.getName());
+		for (Variance var : variances) {
+			if (var.getType().equals(VarianceType.DISTANCE))
+				backlogVariances.add(var.getName());
+		}
 		for (ConnectedContent c : content) {	
-			if (c.getVarianceType().equals(Variance.CONTENT.getName())) {
+			if (backlogVariances.contains(c.getVarianceType())) {
 				backlog.add(c);
 			} else {
 				if (backlog.size() > 0) {
 					// Work on backlog
-					postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog));
+					postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog, variances));
 				}
 				backlog = new LinkedList<>();
 				postcorrection.add(c);
@@ -257,7 +265,7 @@ public class DiffCreator {
 		}
 		if (backlog.size() > 0) {
 			// Last work on result backlog
-			postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog));
+			postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog, variances));
 		}
 	
 		return postcorrection;

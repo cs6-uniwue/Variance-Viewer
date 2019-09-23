@@ -24,6 +24,7 @@ import de.uniwue.compare.variance.types.VarianceLineSeparation;
 import de.uniwue.compare.variance.types.VarianceMissing;
 import de.uniwue.compare.variance.types.VarianceReplacement;
 import de.uniwue.compare.variance.types.VarianceSeparation;
+import de.uniwue.compare.variance.types.VarianceType;
 import de.uniwue.compare.variance.types.VarianceTypography;
 import difflib.Delta;
 import difflib.Delta.TYPE;
@@ -124,15 +125,21 @@ public class VarianceClassifier {
 		return "NONE";
 	}
 
-	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents){
+	public static List<ConnectedContent> classifyMultiple(List<ConnectedContent> contents, List<Variance> varianceTypes){
 		final String CONTENT = Variance.CONTENT.getName();
 		final String SEPARATION = Variance.SEPARATION.getName();
+		final List<String> backlogVariances = new ArrayList<>();
+		backlogVariances.add(Variance.CONTENT.getName());
+		for (Variance var : varianceTypes) {
+			if (var.getType().equals(VarianceType.DISTANCE))
+				backlogVariances.add(var.getName());
+		}
 		
 		for(ConnectedContent content: contents) {
-			if(!content.getVarianceType().equals(CONTENT)) {
+			if(!backlogVariances.contains(content.getVarianceType())) {
 				throw new IllegalArgumentException(
 						String.format("Unable to classify ConnectedContents '%s'. "+
-										"ConnectedContents must be of VarianceType '%s' or be a separation",
+										"ConnectedContents must be of VarianceType '%s', be a 'DISTANCE' or be a separation",
 										content.getVarianceType(), CONTENT));
 			}
 		}
@@ -224,8 +231,12 @@ public class VarianceClassifier {
 				currentRev.add(revIterator.next());
 			}
 			// Add all content not separated by whitespace 
+			String varianceType = CONTENT;
+			//(TODO) check for multiple connected contents in-between currentOrig and currentRev
 			if(currentOrig.size() > 0 && currentRev.size() > 0) {
-				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, CONTENT));
+				if(currentOrig.size() == 1 && currentRev.size() == 1) 
+					varianceType = classifyTouple(currentOrig.get(0), currentRev.get(0), ContentType.CHANGE, varianceTypes);
+				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.CHANGE, varianceType));
 			} else if (currentOrig.size() > 0) {
 				classified.add(new ConnectedContent(currentOrig, currentRev, ContentType.DELETE, CONTENT));
 			} else if (currentRev.size() > 0) {
