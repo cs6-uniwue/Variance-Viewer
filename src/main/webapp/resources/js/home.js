@@ -14,6 +14,10 @@ function validateForm(){
         displayWarning("Please select a settings file, when choosing user settings.");
         return false;
     }
+    if (form["normalize"].checked && form["normalizeFile"].value == "") {
+        displayWarning("Please select a normalize file, when choosing to normalize.");
+        return false;
+    }
 }
 
 function displayWarning(message,time=4000){
@@ -31,6 +35,21 @@ function displayWarning(message,time=4000){
         }, time);
     }
 }
+
+// Normalize help
+let helpSection = document.querySelector("#help-normalize");
+let blur = document.querySelector("#blur");
+function openHelp() {
+    helpSection.style.display = "block";
+    blur.style.display = "block";
+}
+function closeHelp() {
+    helpSection.style.display = "none";
+    blur.style.display = "none";
+}
+document.querySelectorAll(".openNormalizeHelp").forEach((open) => open.addEventListener("click", () => openHelp()));
+document.querySelector("#help-close").addEventListener("click", () => closeHelp());
+blur.addEventListener("click", () => closeHelp());
 
 // Select settings listener
 form["settings"].onchange = () => {

@@ -27,10 +27,22 @@
 			</div>
 			<br>
 			<hr>
+			<%-- Even after some discussion. I'm not sure about the usefulness of the normalization.
+				It should be discussed whether other options are clearer and more useful for the end user. --%>
+			<div id="user_normalize_wrapper">
+				<input type="checkbox" id="use_normalize" name="normalize">
+				<label for="use_normalize">
+					Normalize inputs
+				</label>
+ 				<a href="#" class="help_normalize openNormalizeHelp">🛈</a>
+				<br>
+				<input id="normalize_setting" name="normalizeFile" type="file" accept=".txt, .conf">
+			</div>
+			<br>
 			<input type="submit" value="Compare">
 		</form>
-
 	</article>
+
 	<article class="demos">
 		<h1>Demos</h1>
 		<hr>
@@ -42,6 +54,28 @@
 		</ul>
 	</article>
 
+	<article id="blur"></article>	
+	<article id="help-normalize" class="help">
+		<section id="help-header">
+			Normalize documents
+			<hr>
+		</section>
+		<section id="help-body">
+			<p>This setting allows to normalize both input files, by replacing and removing words or part of words.</p>
+			<p>Every line in the normalization file represents one normalization rule. A normalization rule is a sequence of characters without whitespace or two sequences of characters separated by whitespace.</p> 
+			<p>A rule with two character sequences e.g. <code class="inline">ſ s</code> will replace every instance of long-s ſ with a normal s before comparing the texts.</p>
+			<p>Rules without whitespace characters will represent sequences that are to be removed from both files before comparing the texts.</p>
+			<p>An example could be as follows:</p>
+			<code>
+				ſ ss<br>
+				PAGEBREAK
+			</code>
+			<p>These rules would remove every occurence of PAGEBREAK from both files and replace every "ſ" with "ss" before comparing the texts.</p>
+		</section>
+		<section id="help-confirm">
+			<button id="help-close" type="button">Close</button>
+		</section>
+	</article>
 	<section id="warning"/>
 	<script type="text/javascript" src="resources/js/home.js"></script>
 	<c:if test="${warning != null}">

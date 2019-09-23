@@ -35,6 +35,7 @@ import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.Diff;
 import de.uniwue.compare.DocumentType;
 import de.uniwue.compare.Settings;
+import de.uniwue.compare.SpecialCharacter;
 import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.VarianceStatistics;
 import de.uniwue.compare.variance.types.Variance;
@@ -64,7 +65,9 @@ public class NavigationController {
 			@RequestParam("file1") MultipartFile file1,
 			@RequestParam("file2") MultipartFile file2,
 			@RequestParam("settings") String settingsType,
-			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile) {
+			@RequestParam(value = "settingsFile", required = false) MultipartFile settingsFile,
+			@RequestParam(value = "normalize", required = false) String normalize,
+			@RequestParam(value = "normalizeFile", required = false) MultipartFile normalizeFile) {
 
 		if (!file1.isEmpty() && !file2.isEmpty()) {
 			// Read normalize files / settings
@@ -96,35 +99,67 @@ public class NavigationController {
 			try {
 				String file1Type = file1.getContentType();
 				String file2Type = file2.getContentType();
-				String tei1Content = "";
-				String tei2Content = "";
+				String content1 = "";
+				String content2 = "";
 				// Base document type
 				DocumentType document1Type = file1Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
 				DocumentType document2Type = file2Type.equals("text/xml") ? DocumentType.XML : DocumentType.PLAINTEXT;
 				
 				// Check for TEI document type
 				if (document1Type.equals(DocumentType.XML)) {
-					tei1Content = XMLCleaner.clean(new String(file1.getBytes(), "UTF-8"));
-					document1Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei1Content.getBytes()))
+					content1 = XMLCleaner.clean(new String(file1.getBytes(), "UTF-8"));
+					document1Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(content1.getBytes()))
 							? DocumentType.TEI
 							: DocumentType.XML;
 				} else {
-					tei1Content = new String(file1.getBytes(), "UTF-8");
+					content1 = new String(file1.getBytes(), "UTF-8");
 				}
 				if (document2Type.equals(DocumentType.XML)) {
-					tei2Content = XMLCleaner.clean(new String(file2.getBytes(), "UTF-8"));
-					document2Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(tei2Content.getBytes()))
+					content2 = XMLCleaner.clean(new String(file2.getBytes(), "UTF-8"));
+					document2Type = TEIToAthenConverter.isTEI(new ByteArrayInputStream(content2.getBytes()))
 							? DocumentType.TEI
 							: DocumentType.XML;
 				} else {
-					tei2Content = new String(file2.getBytes(), "UTF-8");
+					content2 = new String(file2.getBytes(), "UTF-8");
+				}
+				
+				// Normalization 
+				// Move to own class if normalization is extended further than replacement
+				if(normalize != null) {
+					if(normalizeFile == null) {
+						model.addAttribute("warning",
+								"A normalize file must be selected when choosing to normalize. Redirected to home.");
+						return home(model);
+					} else {
+						String normalizer = new String(normalizeFile.getBytes(), "UTF-8");
+						int line = 1;
+						for (String ruleString: normalizer.split(SpecialCharacter.LINE_BREAKS_REGEX)) {
+							// Ignore empty lines
+							if(ruleString.trim().length() > 0) {
+								// Check for rules `<delete>` and `<from> <to>`
+								String[] rule = ruleString.trim().split(SpecialCharacter.SPACES_REGEX);
+								if (rule.length > 2) {
+									model.addAttribute("warning",
+											"Rule in normalization file line "+line+" is invalid. Redirected to home.");
+									return home(model);
+								} else if (rule.length == 1) {
+									content1 = content1.replace(rule[0], "");
+									content2 = content2.replace(rule[0], "");
+								} else if (rule.length == 2){
+									content1 = content1.replace(rule[0], rule[1]);
+									content2 = content2.replace(rule[0], rule[1]);
+								}
+							}
+							line++;
+						}
+					}
 				}
 
 				// Compare and create response
 				return compare(model,
 						file1.getOriginalFilename(),
 						file2.getOriginalFilename(),
-						tei1Content, tei2Content,
+						content1, content2,
 						document1Type, document2Type,
 						settings);
 				

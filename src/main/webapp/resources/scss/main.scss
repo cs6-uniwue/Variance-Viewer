@@ -114,7 +114,12 @@ main{
             flex-grow: 1;
         }
     }
+
+    #use_normalize:not(:checked)~#normalize_setting  {
+        display: none;
+    }
 }
+
 
 #demo-list {
     padding: 0px;
@@ -150,6 +155,16 @@ main{
     }
 }
 
+code {
+    font-family: monospace;
+    background-color: #f5f5f5;
+    border: 1px solid #cfd8dc;
+    display: inline-block;
+    width:100%;
+    &.inline{
+        width:auto;
+    }
+}
 #warning{
     visibility: hidden;
     text-align: center;
@@ -372,7 +387,7 @@ footer{
 .openDownload {
     float: left;
 }
-#download, #help, #statistics {
+#download, .help, #statistics {
     display:none;
     position: fixed;
     left: 50%;

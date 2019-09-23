@@ -156,7 +156,7 @@
 			<button id="download-save" type="button">Save</button>
 		</section>
 	</article>
-	<article id="help">
+	<article id="help" class="help">
 		<section id="help-header">
 			Document type help
 			<hr>
