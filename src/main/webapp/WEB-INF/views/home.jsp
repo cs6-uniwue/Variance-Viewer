@@ -35,7 +35,10 @@
 		<h1>Demos</h1>
 		<hr>
 		<ul id="demo-list">
-		<li><a href="demo/view?demo=0">Demo 1</a></li>
+		<li>
+			<a class="demo-view" href="demo/view?demo=0">Demo 1</a>
+			<a class="demo-download" href="demo/download/demo0.zip"><u>⇓</u></a>
+		</li>
 		</ul>
 	</article>
 
