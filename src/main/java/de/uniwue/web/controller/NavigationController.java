@@ -33,7 +33,7 @@ import de.uniwue.compare.DocumentType;
 import de.uniwue.compare.Settings;
 import de.uniwue.compare.variance.VarianceClassifier;
 import de.uniwue.compare.variance.VarianceStatistics;
-import de.uniwue.compare.variance.types.VarianceType;
+import de.uniwue.compare.variance.types.Variance;
 import de.uniwue.translate.DiffExporter;
 import de.uniwue.translate.TEIToAthenConverter;
 import de.uniwue.translate.XMLCleaner;
@@ -218,8 +218,10 @@ public class NavigationController {
 			String file1, String file2,
 			DocumentType document1Type, DocumentType document2Type,
 			Settings settings) {
-			List<String> outputVarianceTypes = settings.getVariances().stream().map(v -> v.getName()).collect(Collectors.toList());
-			
+
+		List<Variance> variancetypes = new ArrayList<>(settings.getVariances());
+		List<String> outputVarianceTypes = variancetypes.stream().map(v -> v.getName()).collect(Collectors.toList());
+
 		// Compare document files
 		if (document1Type.equals(DocumentType.TEI) && document2Type.equals(DocumentType.TEI)) {
 			// Convert to Athen
@@ -250,7 +252,7 @@ public class NavigationController {
 			content2 = content2.replaceAll("\\r\\n", "\n").replaceAll("\\r", "\n");
 			List<ConnectedContent> differences = Diff.comparePlainText(content1, content2, settings);
 
-			outputVarianceTypes.remove("TYPOGRAPHY");
+			outputVarianceTypes.remove(Variance.TYPOGRAPHY.getName());
 			
 			model.addAttribute("exportJSON",
 					DiffExporter.convertToAthenJSONString(content1, differences, outputVarianceTypes));
@@ -258,18 +260,15 @@ public class NavigationController {
 
 			model.addAttribute("statistics", new VarianceStatistics(differences, settings.getVariances()));
 
-			List<VarianceType> variancetypes = new ArrayList<VarianceType>();
-			for (VarianceType variancetype : VarianceType.values())
-				if (!variancetype.equals(VarianceType.NONE))
-					variancetypes.add(variancetype);
+			variancetypes.remove(Variance.TYPOGRAPHY);
 
-			model.addAttribute("variancetypes", VarianceClassifier.sortVariances(settings.getVariances()));
-			model.addAttribute("document1name", filename1);
-			model.addAttribute("document2name", filename2);
-			model.addAttribute("document1type", document1Type);
-			model.addAttribute("document2type", document2Type);
-			model.addAttribute("externalCSS", settings.getExternalCss());
 		}
+		model.addAttribute("variancetypes", VarianceClassifier.sortVariances(variancetypes));
+		model.addAttribute("document1name", filename1);
+		model.addAttribute("document2name", filename2);
+		model.addAttribute("document1type", document1Type);
+		model.addAttribute("document2type", document2Type);
+		model.addAttribute("externalCSS", settings.getExternalCss());
 		return "view";
 	}
 }

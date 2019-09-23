@@ -3,8 +3,8 @@
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags"%>
 
 <t:webpage>
+	<!-- Colors -->
 	<style>
-	// Colors
 	<c:forEach items="${variancetypes}" var="variancetype">
 		.display-switches .display-switch-checkbox label.${variancetype.getName()} {
 			background: ${variancetype.getColor()}ff;

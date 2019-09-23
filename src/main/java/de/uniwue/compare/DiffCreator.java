@@ -34,7 +34,8 @@ public class DiffCreator {
 	public static List<ConnectedContent> patch(List<? extends Token> originalLines, List<? extends Token> revisedLines,
 			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, Settings settings) {
 		List<ConnectedContent> content = new LinkedList<ConnectedContent>();
-		List<Variance> variances = VarianceClassifier.sortVariances(settings.getVariances());
+		final List<Variance> variances = VarianceClassifier.sortVariances(settings.getVariances());
+		variances.remove(Variance.TYPOGRAPHY);
 		
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
