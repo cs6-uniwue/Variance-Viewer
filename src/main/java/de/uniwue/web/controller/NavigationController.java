@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -184,16 +185,13 @@ public class NavigationController {
 		Settings settings;
 		DocumentType document1Type = DocumentType.PLAINTEXT;
 		DocumentType document2Type = DocumentType.PLAINTEXT;
-		final String fs = File.separator;
 		
 		// Select demo
-		switch(demo) {
-		case 0:
-			file1 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test1.txt", servletContext);
-			file2 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test2.txt", servletContext);
-			settings = new Settings(StorageManager.getDefault(servletContext));
-			break;
-		default:
+		try {
+			file1 = getDemoFile1(demo, servletContext);
+			file2 = getDemoFile2(demo, servletContext);
+			settings = getDemoSettings(demo, servletContext);
+		} catch (NoSuchElementException e) {
 			return "redirect:/404";
 		}
 
@@ -218,33 +216,22 @@ public class NavigationController {
 		// Initialize
 		HttpHeaders headers = new HttpHeaders();
 		headers.setCacheControl("no-cache");
-		File file1 = null;
-		File file2 = null;
-		File settings;
-		final String fs = File.separator;
 		
 		// Select demo
-		switch(demo) {
-		case 0:
-			file1 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test1.txt", servletContext);
-			file2 = StorageManager.getFile("demo"+ fs +"demo1"+ fs +"test2.txt", servletContext);
-			settings = StorageManager.getFile("defaults.txt", servletContext);
-			break;
-		default:
-			return new ResponseEntity<byte[]>(new byte[0], headers, HttpStatus.BAD_REQUEST);
-		}
-
-		try {
+		try {	
 		    ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		    ZipOutputStream zip = new ZipOutputStream(baos);
-		    addToZip(zip, file1);
-		    addToZip(zip, file2);
-		    addToZip(zip, settings);
+		    addToZip(zip, getDemoFile1(demo, servletContext));
+		    addToZip(zip, getDemoFile2(demo, servletContext));
+		    addToZip(zip, getDemoSettingsFile(demo, servletContext));
 		    zip.close();
     		
 			headers.setContentType(MediaType.TEXT_PLAIN);
 			headers.setContentLength(baos.toByteArray().length);
 			return new ResponseEntity<byte[]>(baos.toByteArray(), headers, HttpStatus.OK);
+		} catch (NoSuchElementException e) {
+			e.printStackTrace();
+			return new ResponseEntity<byte[]>(new byte[0], headers, HttpStatus.BAD_REQUEST);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return new ResponseEntity<byte[]>(new byte[0], headers, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -357,5 +344,51 @@ public class NavigationController {
 		model.addAttribute("document2type", document2Type);
 		model.addAttribute("externalCSS", settings.getExternalCss());
 		return "view";
+	}
+	
+	/********
+	 * DEMO *
+	 ********/
+	private static File getDemoFile1(int demo, ServletContext servletContext) {
+		final String fs = File.separator;
+		final File[] files1 = new File[] {
+			StorageManager.getFile("demo"+ fs +"GW5041"+ fs +"GW5041-Lesetext.txt", servletContext)
+		};
+		try {
+			return files1[demo];
+		} catch (IndexOutOfBoundsException e) {
+			throw new NoSuchElementException("No file 1 for demo "+demo+" found.");
+		}
+	}
+
+	private static File getDemoFile2(int demo, ServletContext servletContext) {
+		final String fs = File.separator;
+		final File[] files2 = new File[] {
+			StorageManager.getFile("demo"+ fs +"GW5041"+ fs +"GW5041-OCR.txt", servletContext)
+		};
+		try {
+			return files2[demo];
+		} catch (IndexOutOfBoundsException e) {
+			throw new NoSuchElementException("No file 2 for demo "+demo+" found.");
+		}
+	}
+
+	private static Settings getDemoSettings(int demo, ServletContext servletContext) {
+		if(demo == 0) {
+			return new Settings(StorageManager.getDefault(servletContext));
+		} else {
+			throw new NoSuchElementException("No settings for demo "+demo+" found.");
+		}
+	}
+	
+	private static File getDemoSettingsFile(int demo, ServletContext servletContext) {
+		final File[] settings = new File[] {
+			StorageManager.getFile("defaults.txt", servletContext)
+		};
+		try {
+			return settings[demo];
+		} catch (IndexOutOfBoundsException e) {
+			throw new NoSuchElementException("No settings file for demo "+demo+" found.");
+		}
 	}
 }

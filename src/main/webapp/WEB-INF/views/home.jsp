@@ -48,7 +48,7 @@
 		<hr>
 		<ul id="demo-list">
 		<li>
-			<a class="demo-view" href="demo/view?demo=0">Demo 1</a>
+			<a class="demo-view" href="demo/view?demo=0">GW5041 Narrenschiff</a>
 			<a class="demo-download" href="demo/download/demo0.zip"><u>⇓</u></a>
 		</li>
 		</ul>
