@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags"%>
 
 <t:webpage>
@@ -183,7 +184,7 @@
 				<span>${count.key.getName()}</span>
 				<div style="width:${100*count.value/statistics.getGlobalChanges()}%;background-color:${count.key.getColor()}"></div>
 				<span style="text-align:right">${count.value}/${statistics.getGlobalChanges()}</span>
-				<span>(${Math.round(100*count.value/statistics.getGlobalChanges()*100)/100}%)</span>
+				<span>(<fmt:formatNumber value="${100.0*count.value/statistics.getGlobalChanges()}" maxFractionDigits="2" />%)</span>
 			</c:forEach>
 		</section>
 		<section id="statistics-confirm">
