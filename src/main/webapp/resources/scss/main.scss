@@ -4,6 +4,11 @@ $default-font-size: 16px;
 $default-font-size-print: 12px;
 
 @font-face {
+  font-family: 'Andron Scriptor Web';
+  src: url('../font/Andron Scriptor Web.ttf') format('truetype');
+}
+
+@font-face {
   font-family: 'Unifont';
   src: url('../font/unifont_upper-11.0.02.ttf') format('truetype');
 }
