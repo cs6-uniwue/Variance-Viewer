@@ -61,7 +61,7 @@ _(Possible visualization)_
 _(Possible visualization)_
 
 * Difference (without variances classification):		
-	> ~~This~~__This__ is a test.
+	> ~~This~~ __This__ is a test.
 	_(Possible visualization)_
 
 
