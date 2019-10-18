@@ -88,7 +88,7 @@ This guid uses homebrew (please adjust accordingly for your setup)
 ### Access in browser
 Start tomcat (and Variance-Viewer) as described in the installation guide.
 
-Open `localhost:8080/Variance-Viewer` in your browser of choice. (Recomendet: Google Chrome/Chromium)
+Open `localhost:8080/Variance-Viewer` in your browser of choice. (Recommended: Google Chrome/Chromium)
 
 
 ## Configuration ##
@@ -189,7 +189,7 @@ ae a
 ß ss
 ```
 
-> **NOTE**: Previous settings files only allowed predefined variance classes. Those settings files will still work, but we recomment using the above syntax in the future.
+> **NOTE**: Previous settings files only allowed predefined variance classes. Those settings files will still work, but we recommend using the above syntax in the future.
 
 ### Additional Settings
 Variance Viewer does in addition to the variance settings, allow the configuration of the following settings:
