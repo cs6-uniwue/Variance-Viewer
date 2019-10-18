@@ -30,92 +30,65 @@ _Additional information about developing for the Variance-Viewer [see here](docu
 ## Installation
 
 ### Linux
-For this guide tomcat version 8 and Ubuntu is used.
+This guide uses tomcat 8 and Ubuntu (please adjust accordingly for your setup)
 
-#### Packages
-`apt-get install tomcat8 maven openjdk-8-jdk`
-
-#### Clone Repository
-`git clone https://github.com/NesbiDevelopment/Variance-Viewer.git` 
-
-#### Compile
-run `mvn clean install -f Variance-Viewer/pom.xml`.
-
-#### Copy or link the created war file to tomcat
-Either: `sudo ln -s $PWD/Variance-Viewer/target/Variance-Viewer.war /var/lib/tomcat8/webapps/Variance-Viewer.war`
-
-or `cp Variance-Viewer/target/Variance-Viewer.war /var/lib/tomcat8/webapps/Variance-Viewer.war`
-
-#### Start Tomcat
-`systemctl start tomcat8`
-
-to restart `systemctl restart tomcat8`
-
-to start automatically at system boot `systemctl enable tomcat8`
+* Install required packages: 
+	`apt-get install tomcat8 maven openjdk-8-jdk`
+* Clone Repository: 
+	`git clone https://github.com/cs6-uniwue/Variance-Viewer.git` 
+* Compile: 
+	`mvn clean install -f Variance-Viewer/pom.xml`
+* Copy or link the created war file to tomcat:
+	* Copy: `sudo cp Variance-Viewer/target/Variance-Viewer.war /var/lib/tomcat8/webapps/Variance-Viewer.war`
+	* Link: `sudo ln -s $PWD/Variance-Viewer/target/Variance-Viewer.war /var/lib/tomcat8/webapps/Variance-Viewer.war`
+* Start Tomcat:
+	`systemctl start tomcat8`
+	* (Restart Tomcat via `systemctl restart tomcat8`)
+	* (To start Tomcat automatically at system boot `systemctl enable tomcat8`)
 
 ### Windows
-It is recommended to use Eclipse.
+This guide uses eclipse to simplify the setup
 
-#### Java EE for Web Developer
-In Eclipse go to `Help -> Install New Software` and select `All sources` under `Work with`.
-
-Afterwards select and install `Web, XML, Java EE and OSGi Enterprise Development`
-
-#### Apache Tomcat
-Download and extract the most recent version under http://tomcat.apache.org/download-90.cgi.
-
-Open `Window` -> `Show View` -> `Other...` -> `Server` -> `Servers`
-
-Click the info that promts to add a new server, select `Apache` -> `Tomcat <version> Server` -> `Next`-> set your Tomcat installation directory -> `Finish`.
-
-#### Import Project
-Open `File` -> `Import` and select `Maven` -> `Existing Maven Projects` -> `Next`.
-
-Set the projects directory as the root directory and select `Finish`.
-
-If the maven project has not updated automatically, rightclick on `Variance-Viewer` -> `Maven` -> `Update Project...` -> `OK`
-
-#### Start Tomcat
-Rightclick on `Variance-Viewer` -> `Run As` -> `Run on Server`.
-
+* Install _Eclipse IDE for Enterprise Java Developers_ from the [official website](https://www.eclipse.org/downloads/packages/)
+* Download tomcat 8 or up from the [official website](http://tomcat.apache.org/download-90.cgi)
+* Create a tomcat server in eclipse:
+	* Open `Window` -> `Show View` -> `Other...` -> `Server` -> `Servers`
+	* Click prompt to add a new server, select `Apache` -> `Tomcat <version> Server` -> `Next`-> set your Tomcat installation directory -> `Finish`.
+* Clone Repository:
+	* `File` -> `Import` -> `Git` -> `Projects from Git` -> `Clone URI`
+	-> Set `URI: https://github.com/cs6-uniwue/Variance-Viewer.git` -> `[✓] master` -> `Next >` -> `Next >` -> `Import as gernal project` -> `Finish`
+* Set as Maven Project:
+* Import Project
+	* Right click on `Variance-Viewer` -> `Configure` -> `Convert to Maven Project` -> `Finish`
+* Update maven project (if not updated automatically)
+	* Rightclick on `Variance-Viewer` -> `Maven` -> `Update Project...` -> `OK`
+* Start Variance Viewer
+	* Right click on `Variance-Viewer` -> `Run As` -> `Run on Server`.
 
 ### Mac OS X
-
-#### Homebrew
-Install homebrew (see https://brew.sh/).
-
-Afterwards install all required packages (java, Tomcat, git, and maven):
-
-`brew cask install java`
-
-`brew install tomcat git maven`
-
-To verify the Tomcat installation use homebrew’s services utility. 
-
-Tomcat should now be listed in the following command:
-
-`brew services list`
-
-#### Clone Repository
-`git clone https://github.com/NesbiDevelopment/Variance-Viewer.git` 
-
-#### Compile
-run `mvn clean install -f Variance-Viewer/pom.xml`.
-
-#### Copy or link the created war file to tomcat
-Either: `sudo ln -s $PWD/Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[version]/libexec/webapps/Variance-Viewer.war`
-
-or `cp Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[version]/libexec/webapps/Variance-Viewer.war`
-
-#### Start Tomcat
-`brew services start tomcat`
-
-to restart `brew services restart tomcat`
-
+This guid uses homebrew (please adjust accordingly for your setup)
+* Install Homebrew (see https://brew.sh/).
+* Install required packages:
+	* `brew cask install java`
+	* `brew install tomcat git maven`
+* (Verify tomcat installation):
+	* `brew services list` tomcat should be listed in the output of this command
+* Clone Repository:
+	* `git clone https://github.com/cs6-uniwue/Variance-Viewer.git` 
+* Compile:
+	* run `mvn clean install -f Variance-Viewer/pom.xml`.
+* Copy or link the created war file to tomcat
+	* Copy: `cp Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[version]/libexec/webapps/Variance-Viewer.war`
+	* Link: `ln -s $PWD/Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[version]/libexec/webapps/Variance-Viewer.war`
+* Start Tomcat:
+	* `brew services start tomcat`
+	* (Restart Tomcat via `brew services restart tomcat`)
 
 ## Usage
 ### Access in browser
-Go to `localhost:8080/Variance-Viewer`.
+Start tomcat (and Variance-Viewer) as described in the installation guide.
+
+Open `localhost:8080/Variance-Viewer` in your browser of choice. (Recomendet: Google Chrome/Chromium)
 
 
 ## Configuration ##
@@ -164,7 +137,7 @@ cu ku
 head p
 :contenttags:
 ``` 
-(The currently used default settings file, can be downloaded when opening the application and selecting ``default⇓`` )
+(The currently used default settings file, can be downloaded when opening the application and selecting ``default(⇓)`` )
 
 ### User defined Variances
 The variance viewer allows users to define variance types in addition to pre existing ones.
