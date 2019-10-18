@@ -68,15 +68,15 @@ _(Possible visualization)_
 
 Process
 -------
-The comparision of documents with the Variance Viewer are not restricted on content changes. 
+The comparision of documents with the Variance Viewer are not solely restricted to content changes. 
 Users can define rules by which the documents will be compared.
-This process is comprisered of the the (_Parsing_,) _Tokenizing_, _Comparison_ and _Variance finding_.
+This process is comprised of (_Parsing_,) _Tokenizing_, _Comparison_ and _Variance finding_.
 
 
 ### Parsing (TEI)
 The parsing of documents is depending on the type of input documents.
 If either or both documents are plain text then no parsing is executed.
-If both are TEI documents, than they are parsed by extracting the content predefined "Content Tags" with their `rend` attributes intact.
+If both are TEI documents, than they are parsed by extracting the content predefined "Content Tags" with their `rend` attributes.
 * `Content Tags`: XML tags in TEI documents in which the main content is defined (defined in the settings). 
 	* e.g. `p` for the comparison between paragraphs. (_Default:_ `head` and `p`)
 	* Meta tags about dokument namen etc. are thereby filtered out
