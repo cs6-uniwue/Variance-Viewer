@@ -1,16 +1,81 @@
-:css:
-.wide{letter-spacing: 3px;}
-.sizeXL{font-size: x-large;}
-.sizeXXL{font-size: xx-large;}
-.straight{text-decoration: underline;}
-.initial{text-decoration: underline;}
-:css:
+### VARIANCE VIEWER - SETTINGS
+# Lines starting with "#" are comments and will not be interpreted
+#
+## Global Settings for variance classification
+# Each variance type can be defined as follows:
+#
+# ```
+# :<name>[<type>|<color>]:
+# <rules/settings>
+# :<name>:
+# ```
+#
+# <name>: Name to use for ones variance type
+#			(Any Combination of letters, spaces and numbers)
+# <type>: One of the following user definable variances:
+#			MISSING (M): (sequence of) characters missing in one
+#							word but present in the other
+#							e.g. missing characters: x
+#								changes: Testx | Test 
+#								=> Missing Variance with the character x
+#			DISTANCE (D): levenshtein distance on character basis
+#							between two words (with min and max distance)
+#							e.g. min distance:0, max distance:2
+#								changes: Test | Text 
+#								=> Distance Variance of one character
+#			REPLACEMENT (R): Changes between words, where a sequence of
+#							characters of one word are changed to another
+#							sequence of characters in the other word
+#							e.g. Replacement Rule: ae -> ä
+#								changes: Bär | Baer
+#								=> Replacement Variance with the changes
+#									from ae to ä
+#			SEPARATION (S): Changes between a sequence of words where the only
+#							difference are their separation  
+#							(with a max separation length)
+#							e.g. max separations:3
+#								changes: thistest | this test
+#								=> Separation Variance with one separation between 
+#									the words "this" and "test"
+#
+# <color>: In hex-code defined rgb color to represent a variance type. e.g. "#ff0000" for red
+#
+# <rules/settings>: Variance specific rules and settings of the variances in <type>
+#	MISSING (M): Character (sequences) separated by whitespaces
+#	e.g. 
+#		a b cd 
+#		e f g
+#					 
+#	DISTANCE (D): Min and max distance value, separated by whitespace
+#	e.g.
+#		0 3
+#
+#	REPLACEMENT (R): A list of (bidirectional) replacement rules. 
+#					Each rule is in one line and separates the replacement by a space
+#	e.g.
+#		ae a
+#		ß ss
+#
+#	SEPARATION (S): Max separations 
+#	e.g.
+#		1
+#
+#
+## The following are the base variances that can be seen as examples 
+:Punctuations[MISSING|#f44336]:
+,
+;
+/
+-
+.
+?
+!
+—
+–
+´
+:Punctuations:
 
-:punctuations:
-,;/-.?!—–´
-:punctuations:
-
-:graphemes:
+:Graphemes[REPLACEMENT|#ffb74d]:
 y i
 c t
 u v
@@ -27,12 +92,30 @@ cu ku
 ä ae
 ö oe
 ü ue
-:graphemes:
+:Graphemes:
 
-:abbreviations:
+:Abbreviations[REPLACEMENT|#d35ae8]:
+:Abbreviations:
 
-:abbreviations:
+:OneDifference[DISTANCE|#a3e302]:
+0 1
+:OneDifference:
 
+## TEI specific settings
+# CSS for words with TEI attribute rend
+# e.g. rend="wide" and css:'.wide{letter-spacing: 3px;}'
+# Every word that is set to wide will be displayed with 
+# letter spacing of 3px in the gui
+:css:
+.wide{letter-spacing: 3px;}
+.sizeXL{font-size: x-large;}
+.sizeXXL{font-size: xx-large;}
+.straight{text-decoration: underline;}
+.initial{text-decoration: underline;}
+:css:
+
+# TEI tags that contain content, should normaly not be changed
+# Separated by spaces (Default: head p)
 :contenttags:
 head p
 :contenttags:

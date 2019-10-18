@@ -1,106 +1,144 @@
 package de.uniwue.compare;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-/**
- * Settings object representing all variance rules and display settings.
- *
- */
+import de.uniwue.compare.variance.types.Variance;
+import de.uniwue.compare.variance.types.VarianceDistance;
+import de.uniwue.compare.variance.types.VarianceMissing;
+import de.uniwue.compare.variance.types.VarianceReplacement;
+
 public class Settings {
 
-	private final List<String> punctuation;
-	private final Map<String, String> graphemes;
-	private final Map<String, String> abbreviations;
-	private final List<String> contentTags;
-	private final String externalCss;
-	private final static String[] tags = new String[] { ":punctuations:", ":graphemes:", ":abbreviations:",
-			":contenttags:", ":css:" };
-
-	/**
-	 * Create Settings object from a valid settingsString. Will raise
-	 * IllegalArgumentException if settingsString is not valide.
-	 * 
-	 * @param settingsString
-	 */
+	private List<String> contentTags;
+	private String externalCss;
+	private	List<Variance> variances;
+	private final static List<String> baseTags = Arrays.asList(new String[] { "css", "contenttags" });
+	private final static List<String> legacyTags = Arrays.asList(new String[] {
+													"punctuations", "graphemes", "abbreviations"});
+	
 	public Settings(String settingsString) {
-		validate(settingsString);
-		this.punctuation = Arrays.asList(getSettingsString("punctuations", settingsString).split("(?!^)"));
-		this.graphemes = readRules(getSettingsString("graphemes", settingsString));
-		this.abbreviations = readRules(getSettingsString("abbreviations", settingsString));
-		this.contentTags = Arrays.asList(getSettingsString("contenttags", settingsString).split("\\s+"));
-		this.externalCss = getSettingsString("css", settingsString);
+		variances = new ArrayList<>();
+		fromString(settingsString);
+		variances.addAll(Variance.getBaseVariances());
 	}
+	
+	
+	private void fromString(String rawString) {
+		String settingsString = Arrays.stream(rawString.split(SpecialCharacter.LINE_BREAKS_REGEX))
+									.filter(l -> !(l == null || l == "" || l.startsWith("#")))
+									.collect(Collectors.joining("\n"));
+		
+		Pattern settingsPattern = Pattern.compile(":(.+):((?:\\r|\\n|.)*?):(.+):");
+		Pattern complexTagPattern = Pattern.compile("(.+)\\[(.+)\\|(.+)\\]");
+		
+	
+		Matcher settingsMatcher = settingsPattern.matcher(settingsString);
+		while (settingsMatcher.find()) {
+			final String settingHead = settingsMatcher.group(1);
+			
+			// Process start tag
+			Matcher complexTagMatcher = complexTagPattern.matcher(settingHead);
+			String tag = null;
+			String variance = null;
+			String color = null;
+			if (complexTagMatcher.find()) {
+				tag = complexTagMatcher.group(1);
+				variance = complexTagMatcher.group(2);
+				color = complexTagMatcher.group(3);
+			} else {
+				// Is simple tag
+				if (baseTags.contains(settingHead) || legacyTags.contains(settingHead)) {
+					tag = settingHead;
+				} else {
+					Integer[] textposition = calculateTextPosition(settingsMatcher.start(), settingsString);
+					throw new IllegalArgumentException(String.format(
+							"Unkown starting tag '%s' at line '%d'. Tags must either be complex with ':<tagname>[<variance>|<color>]:' , "+
+							"or one of the base tags 'css', 'contenttags', or a legacy tag like 'punktuations', 'graphemes', 'abbreviations'.",
+							settingHead, textposition[0]));
+				}
+			}
+			
 
-	/**
-	 * Validate settingsString and will raise IllegalArgumentException if
-	 * settingsString is not valid. Exceptions includes additional information about
-	 * the error.
-	 * 
-	 * @param settingsString
-	 * @return
-	 */
-	private static boolean validate(String settingsString) {
-		// Check tag count
-		for (String tag : tags) {
-			final int occurances = countOccurrances(settingsString, tag);
-			if (occurances != 2 && occurances != 0) {
-				throw new IllegalArgumentException(
-						String.format("Tag '%s' has been opened, but not closed.", tag));
-			} else if (occurances > 0) {
-				// Check invalid tag position
-				String tagContent = settingsString.substring(settingsString.indexOf(tag),
-						settingsString.lastIndexOf(tag));
-				for (String otherTag : tags) {
-					if (otherTag != tag && tagContent.contains(otherTag)) {
+			// Check if settings starts and ends with the same tag
+			final String endTag = settingsMatcher.group(3);
+			if (!endTag.equals(tag)) {
+				Integer[] textposition = calculateTextPosition(settingsMatcher.end(), settingsString);
+				throw new IllegalArgumentException(String.format(
+						"Expected tag '%s' at line '%d', encountered '%s'.",
+						tag, textposition[0], endTag));
+			}
+			
+			
+			// Process setting
+			final String settingBody = settingsMatcher.group(2);
+			Integer[] textposition = calculateTextPosition(settingsMatcher.start(), settingsString);
+			if (variance != null && color != null) {
+				// Complex variance type
+				switch(variance.toLowerCase()) {
+					case "missing":
+					case "m":
+						variances.add(new VarianceMissing(tag, color, 0, readMissing(settingBody, textposition)));
+						break;
+					case "replacement":
+					case "r":
+						variances.add(new VarianceReplacement(tag, color, 0, readReplacementRules(settingBody, textposition)));
+						break;
+					case "distance":
+					case "d":
+						final Integer[] range = readIntegerRange(settingBody, textposition);
+						variances.add(new VarianceDistance(tag, color, 0, range[0], range[1]));
+						break;
+					default:
 						throw new IllegalArgumentException(String.format(
-								"Tag '%s' was opened inside '%s'." + " Tags can not be definde inside others.",
-								otherTag, tag));
-					}
+								"Unkown variance type '%s' at line %d for tag '%s'.",
+								variance, textposition[0], tag));
+				}
+			} else {
+				switch(tag.toLowerCase()) {
+					case "css":
+						externalCss = settingBody;
+						break;
+					case "contenttags":
+						contentTags = Arrays.asList(settingBody.trim().split(SpecialCharacter.WHITESPACES_REGEX));
+						break;
+					// Legacy settings
+					case "punctuations":
+						variances.add(new VarianceMissing("PUNKTUATION", "#f44336", 0,
+													Arrays.asList(settingBody.trim().split("(?!^)"))));
+						break;
+					case "graphemes":
+						variances.add(new VarianceReplacement("GRAPHEMICS", "#ffb74d", 0, 
+													readReplacementRules(settingBody, textposition)));
+						break;
+					case "abbreviations":
+						variances.add(new VarianceReplacement("ABBREVIATION", "#9c27b0", 1,
+													readReplacementRules(settingBody, textposition)));
+						break;
+					default: 
+						throw new IllegalArgumentException(String.format(
+								"Unkown setting '%s' at line %d.",
+								tag, textposition[0]));
 				}
 			}
 		}
-
-		return true;
 	}
-
+	
 	/**
-	 * Count the occurrences of a :tag: inside a text
-	 * 
-	 * @param text
-	 * @param tag
-	 * @return
-	 */
-	private static int countOccurrances(String text, String tag) {
-		return (int) ((text.length() - text.replaceAll(tag, "").length()) / tag.length());
-	}
-
-	public Map<String, String> getAbbreviations() {
-		return abbreviations;
-	}
-
-	/**
-	 * Get all graphemic rules
+	 * Get all variances defined in the settings file
 	 * 
 	 * @return
 	 */
-	public Map<String, String> getGraphemes() {
-		return graphemes;
+	public List<Variance> getVariances() {
+		return new ArrayList<>(variances);
 	}
-
-	/**
-	 * Get all punctuations to consider
-	 * 
-	 * @return
-	 */
-	public List<String> getPunctuation() {
-		return punctuation;
-	}
-
+	
 	/**
 	 * Get all tags that should be compared via their content
 	 * 
@@ -119,69 +157,89 @@ public class Settings {
 		return externalCss;
 	}
 
+	
+	
 	/**
-	 * Get the content between the start and end of a settings :tag:
+	 * Calculate the line and column position of a position inside a text String.
+	 * e.g.
+	 * "Test
+	 * Text"
+	 * position 6 ("T")
+	 * => line = 1, column = 0
 	 * 
-	 * @param settingsTag    Tag to search content in
-	 * @param settingsString Complete settings string/content of the settings file
-	 * @return Settings in between the start and end of a tag
+	 * @param position
+	 * @param document
+	 * @return
 	 */
-	private String getSettingsString(String settingsTag, String settingsString) {
-		String settingsTagString = "";
-		// Check if setting exists and isn't empty, because of costly extraction via .*
-		if (doesSettingExist(settingsTag, settingsString) && !isSettingEmpty(settingsTag, settingsString)) {
-			// Get Settings content
-			String settingPattern = Pattern.quote(":" + settingsTag + ":");
-			Matcher matcher = Pattern.compile(settingPattern + "\\n((.*|\\n)*)\\n" + settingPattern)
-					.matcher(settingsString);
-
-			if (matcher.find())
-				return matcher.group(1) != null ? matcher.group(1) : "";
+	private static Integer[] calculateTextPosition(int position, String document) {
+		final int lastNewLine = document.substring(0, position).lastIndexOf(System.lineSeparator());
+		final int line = document.substring(0, position).split(System.lineSeparator()).length - 1 ;
+		final int column = position - lastNewLine + 1;
+		
+		return new Integer[] {line, column};
+	}
+	
+	/**
+	 * Read an integer range of a setting 
+	 * 
+	 * @param settings Settings body in between a tags start and end
+	 * @return range value [start,end] provided
+	 */
+	private Integer[] readIntegerRange(String settings, Integer[] startposition) {
+		String[] rangeValues = settings.trim().split("\\s");
+		if (rangeValues.length != 2) {
+			throw new IllegalArgumentException(String.format(
+					"Range values found at line %d consist of %d parts instead of 2 parts.",
+					startposition[0], rangeValues.length));
 		}
-
-		return settingsTagString;
+		try{
+			return new Integer[] {
+					Integer.parseInt(rangeValues[0].trim()),
+					Integer.parseInt(rangeValues[1].trim())
+			};
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(String.format(
+					"Range values found at line %d must consist of two integer number.",
+					startposition[0]));
+		}
 	}
 
 	/**
-	 * Read the rules from a settings tag (e.g. Graphemics, Abbreviations)
+	 * Read the rules from a Replacement settings tag 
 	 * 
-	 * @param settings Settings in between a tags start and end
+	 * @param settings Settings body in between a tags start and end
 	 * @return Map with all rules (Key:From, Value:To)
 	 */
-	private Map<String, String> readRules(String settings) {
+	private Map<String, String> readReplacementRules(String settings, Integer[] startposition) {
 		Map<String, String> converted = new HashMap<String, String>();
 
+		int linecounter = 0;
 		for (String line : settings.split(System.lineSeparator())) {
-			String[] linecontent = line.split(" ");
-			if (linecontent.length == 2)
-				converted.put(linecontent[0], linecontent[1]);
-			else
-				System.err.println("Invalid line in settings.");
+			if (!line.trim().isEmpty()) {
+				String[] linecontent = line.split("\\s");
+				if (linecontent.length == 2) {
+					converted.put(linecontent[0], linecontent[1]);
+				} else {
+					// Replacement rules can only consist of two parts and do not allow more than one whitespace
+					throw new IllegalArgumentException(String.format(
+							"Replacement rule at line %d does consist of %d parts instead of 2.",
+							startposition[0] + linecounter, linecontent.length));
+				}
+			}
+			linecounter++;
 		}
 
 		return converted;
 	}
 
 	/**
-	 * Check if a setting does exist inside a settings file
+	 * Read the rules from a Missing settings tag
 	 * 
-	 * @param settingTag     Settings tag to search
-	 * @param settingsString Complete settings content of all settings
-	 * @return True if exists, else False
+	 * @param settings Settings body in between a tags start and end
+	 * @return List with all rules 
 	 */
-	private boolean doesSettingExist(String settingTag, String settingsString) {
-		return settingsString.contains(":" + settingTag + ":");
-	}
-
-	/**
-	 * Check if a settings tag contains content
-	 * 
-	 * @param settingTag     Tag to check
-	 * @param settingsString Complete setting content of all settings
-	 * @return True if empty, else False
-	 */
-	private boolean isSettingEmpty(String settingTag, String settingsString) {
-		return Pattern.compile(Pattern.quote(":" + settingTag + ":(\\s)*:" + settingTag + ":")).matcher(settingsString)
-				.find();
+	private List<String> readMissing(String settings, Integer[] startposition) {
+		return Arrays.stream(settings.split(SpecialCharacter.WHITESPACES_REGEX+"+"))
+			.filter(s -> !s.isEmpty()).collect(Collectors.toList());
 	}
 }

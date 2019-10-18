@@ -13,7 +13,6 @@ import com.google.gson.Gson;
 
 import de.uniwue.compare.ConnectedContent;
 import de.uniwue.compare.ContentType;
-import de.uniwue.compare.VarianceType;
 import de.uniwue.compare.token.Token;
 import de.uniwue.wa.server.editor.AnnotationWrapper;
 import de.uniwue.wa.server.editor.FeatureWrapper;
@@ -34,7 +33,7 @@ public class DiffExporter {
 	 */
 	public static String convertToAthenJSONString(String originalDocumenat,
 						List<ConnectedContent> diffContents,
-						List<VarianceType> outputVarianceTypes) {
+						List<String> outputVarianceTypes) {
 		TextAnnotationStruct originalDocument = new TextAnnotationStruct(null, originalDocumenat, new ArrayList<>(),
 				new ArrayList<>());
 
@@ -50,7 +49,7 @@ public class DiffExporter {
 	 */
 	@SuppressWarnings("unchecked")
 	public static String convertToAthenJSONString(TextAnnotationStruct originalDocument,
-			List<ConnectedContent> diffContents, List<VarianceType> outputVarianceTypes) {
+			List<ConnectedContent> diffContents, List<String> outputVarianceTypes) {
 		String text = originalDocument.getText();
 
 		// ** Annotations **
@@ -67,7 +66,6 @@ public class DiffExporter {
 			if(outputVarianceTypes.contains(content.getVarianceType())) {
 				switch (content.getContentType()) {
 				case CHANGE:
-					//System.out.println(content.getRevisedAsText());
 					text = insertRevised(text, content.getRevisedAsText(),
 							(int) (totalDelta + content.getOriginal().peekLast().getEnd()));
 					final int changeId = idCounter++;

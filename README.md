@@ -1,8 +1,9 @@
 ![viewer](https://user-images.githubusercontent.com/23743591/45493637-8840c880-b76f-11e8-8efc-4e92d986aea6.png)
 
+
 # Variance-Viewer
 
-Variance-Viewer is a automatic open-source tool for text comparison with an extendable rule based variance analysis.
+Variance-Viewer is an automatic open-source tool for text comparison with an extendable rule based variance analysis.
 Documents are compared on word basis, while their variance is displayed on character basis.
 
 *Plain text* documents, as well as *TEI* documents are supported as input, while *pdf*, *TEI* and *json* are supported as an output format.
@@ -14,14 +15,19 @@ This tool has been created in a project of the [Chair of Computer Science VI - A
 
 
 ## Table of Contents
-- [Installing](#installing)
+- [Installation](#installation)
   * [Linux](#linux)
   * [Windows](#windows)
   * [Mac OS X](#mac-os-x)
-- [Running](#running)
+- [Usage](#usage)
 - [Configuration](#configuration)
+	* [User defined Variances](#user-defined-variances)
+	* [Additional Settings](#additional-settings)
 
-## Installing
+_Additional information about developing for the Variance-Viewer [see here](documentation/development.md) and more information about the functionality and procedures [see here](documentation/algorithm.md)._
+
+
+## Installation
 
 ### Linux
 For this guide tomcat version 8 and Ubuntu is used.
@@ -107,7 +113,7 @@ or `cp Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[vers
 to restart `brew services restart tomcat`
 
 
-## Running
+## Usage
 ### Access in browser
 Go to `localhost:8080/Variance-Viewer`.
 
@@ -115,20 +121,14 @@ Go to `localhost:8080/Variance-Viewer`.
 ## Configuration ##
 Variance-Viewer contains a default configuration file (src/webapp/WEB-INF/default.txt) with a few settings that can be set before running the application. 
 A user can also provide a configutarion file by adding it at the home menu, with a typical settings file beeing as follows:
-
+(Lines starting with "#" are comments and will not be interpreted)
 ```
-:css:
-.wide{letter-spacing: 3px;}
-.sizeXL{font-size: 110%;}
-.sizeXXL{font-size: 130%;}
-:css:
+# User defined Variances
+:Punctuations[MISSING|#f44336]:
+, ; / - .  ?  !  — – ´
+:Punctuations:
 
-
-:punctuations:
-,;/\\-\\.\\?!—–´
-:punctuations:
-
-:graphemes:
+:Graphemes[REPLACEMENT|#ffb74d]:
 y i
 c t
 u v
@@ -145,12 +145,20 @@ cu ku
 ä ae
 ö oe
 ü ue
-:graphemes:
+:Graphemes:
 
-:abbreviations:
-Dr. doctor
-Prof. professor
-:abbreviations:
+:OneDifference[DISTANCE|#a3e302]:
+0 1
+:OneDifference:
+
+# Additional Settings
+:css:
+.wide{letter-spacing: 3px;}
+.sizeXL{font-size: x-large;}
+.sizeXXL{font-size: xx-large;}
+.straight{text-decoration: underline;}
+.initial{text-decoration: underline;}
+:css:
 
 :contenttags:
 head p
@@ -158,9 +166,62 @@ head p
 ``` 
 (The currently used default settings file, can be downloaded when opening the application and selecting ``default⇓`` )
 
+### User defined Variances
+The variance viewer allows users to define variance types in addition to pre existing ones.
+These types can be added to a settings file, which can be selected before the text comparisons.
 
-### :css:
-The css tag allows the user to specify the visual appearance of the viewer.
+The pre existing ones include:
+* TYPOGRAPHY - Only present in TEI texts. Represents the changes in how text is displayed (utilizes the rend attribute) e.g. `<p rend="xxl">Test</p>` changed to `<p>Test</p>`
+* SEPARATION - Represents the separation changes between multiple tokens. e.g. "Thistest" changed to "This test" 
+* CONTENT - The fallback variance type for all changes that can not be classified as any other variance.
+
+Users can in addition to the existing variance types define their own, as follows:
+```
+:<name>[<type>|<color>]:
+<rules/settings>
+:<name>:
+```
+
+`<name>`: Name to use for ones variance type
+	(Any Combination of letters and numbers, starting with a letter)
+
+`<type>`: One of the following user definable variances:
+* MISSING (M): (sequence of) characters missing in one word but present in the other.
+	e.g. missing characters "x" with "Testx" changed to "Test" 
+* DISTANCE (D): levenshtein distance on character basis between two words (with min and max distance).
+	e.g. min distance:0 and max distance:2 with "Test" changed to "Text" 
+* REPLACEMENT (R): Changes between words, where a sequence of characters of one word are changed to another sequence of characters in the other word.
+	e.g. Replacement Rule "ae ä" with "Bär" changed to "Baer"
+
+`<color>`: In hex-code defined rgb color to represent a variance type. e.g. "#ff0000" for red
+
+`<rules/settings>`: Variance specific rules and settings of the variances in <type>
+MISSING (M): Character (sequences) separated by whitespaces
+e.g. 
+```
+a b cd 
+e f g
+```				 
+
+DISTANCE (D): Min and max distance value, separated by whitespace
+e.g.
+```
+0 3
+```
+REPLACEMENT (R): A list of (bidirectional) replacement rules. 
+	Each rule is in one line and separates the replacement by a space
+e.g.
+```
+ae a
+ß ss
+```
+
+> **NOTE**: Previous settings files only allowed predefined variance classes. Those settings files will still work, but we recomment using the above syntax in the future.
+
+### Additional Settings
+Variance Viewer does in addition to the variance settings, allow the configuration of the following settings:
+#### css
+The `:css:` tag allows the user to specify the visual appearance of the viewer.
 A specific font for example or a visual appearance for TEI render attributes (rend) can be set here.
 Render types are named equally as in the TEI documents specified and an example for a *wide* rend class could be as follows:
 
@@ -172,39 +233,14 @@ Render types are named equally as in the TEI documents specified and an example 
 :css:
 ```
 
-### :punctuations:
-Punctuations to consider in the punctuation variance class can be specified in the setting :punctuations:.
-These symbols can be listed in sequence as follows:
-
-```
-:punctuations:
-,;/-.?!—–
-:punctuations:
-```
-
-### :graphemes:
-Graphemic changes in words like *ö* to *oe* or *å* to *ao* can be set in the :graphemes: setting.
-Every line describes one graphemic change and the list is processed from top to bottom and left to right.
-This means that the tokens *maß*, *maſs* and *mass* for example are, with the following rules, considered graphemic changes to one another. 
-
-```
-:graphemes:
-ſs ss
-ß ss
-:graphemes:
-```
-
-### :abbreviations:
-A abbreviation like *Dr.* for *doctor* can be specified in the :abbreviations: setting.
-These rules for abbreviation changes are build in the same way as rules for graphemic changes.
-
-### :contenttags:
+#### contenttags
 This tool supports the comparison of TEI documents.
-Text between tags, that are specified here, is tokenized and compared.
-The following setting will compare every text between head and p tags between two TEI documents: 
+Text between tags, that are specified here, are tokenized and compared.
+The following setting will compare every text between `head` and `p` tags between two TEI documents: 
 
 ```
 :contenttags:
 head p
 :contenttags:
 ```
+(You normaly do not need to change this setting and it is only used in the comparison of TEI documents) 

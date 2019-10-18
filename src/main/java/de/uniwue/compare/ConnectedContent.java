@@ -3,37 +3,42 @@ package de.uniwue.compare;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 
 import de.uniwue.compare.token.Token;
 
+/**
+ * Connection between original and revised tokens.
+ * Tokens are typically considered connected if they are equal or reference
+ * the "same" text with changes inside
+ */
 public class ConnectedContent {
 	private LinkedList<Token> original, revised;
 	private final ContentType contentType;
-	private VarianceType varianceType;
+	private String varianceType;
 
-	public ConnectedContent(Token original, Token revised, ContentType contentType) {
-		this(new LinkedList<Token>(Arrays.asList(original)),new LinkedList<Token>(Arrays.asList(revised)),contentType);
+	public ConnectedContent(Token original, Token revised, ContentType contentType, String varianceType) {
+		this(new LinkedList<Token>(Arrays.asList(original)),new LinkedList<Token>(Arrays.asList(revised)),contentType, varianceType);
 	}
-	public ConnectedContent(LinkedList<Token> original, LinkedList<Token> revised,
-			ContentType contentType) {
-		this.original = new LinkedList<Token>();
-		addOriginal(original);
-		this.revised = revised;
+	public ConnectedContent(List<? extends Token> original, List<? extends Token> revised,
+			ContentType contentType, String varianceType) {
+		this.original = new LinkedList<>(original);
+		this.revised = new LinkedList<>(revised);
 		this.contentType = contentType;
-		this.varianceType = contentType.equals(ContentType.EQUAL) ? VarianceType.NONE : VarianceType.CONTENT;
+		this.varianceType = varianceType;
 	}
 
-	public ConnectedContent(LinkedList<Token> equalContent) {
+	public ConnectedContent(List<Token> equalContent) {
 		if(equalContent.size() == 0)
 			throw new IllegalArgumentException("Can't create an empty connected content of type equal");
 		this.original = new LinkedList<Token>();
 		addOriginal(equalContent);
 		this.contentType = ContentType.EQUAL;
-		this.varianceType = VarianceType.NONE;
+		this.varianceType = "NONE";
 	}
 
-	public ConnectedContent(ContentType type) {
-		this(new LinkedList<Token>(), new LinkedList<Token>(), type);
+	public ConnectedContent(ContentType type, String varianceType) {
+		this(new LinkedList<Token>(), new LinkedList<Token>(), type, varianceType);
 	}
 
 	public LinkedList<Token> getOriginal() {
@@ -54,15 +59,15 @@ public class ConnectedContent {
 		return contentType;
 	}
 
-	public VarianceType getVarianceType() {
+	public String getVarianceType() {
 		return varianceType;
 	}
 
-	public void setVarianceType(VarianceType varianceType) {
+	public void setVarianceType(String varianceType) {
 		this.varianceType = varianceType;
 	}
 
-	public void addOriginal(Collection<Token> original) {
+	public void addOriginal(Collection<? extends Token> original) {
 		this.original.addAll(original);
 	}
 
@@ -70,7 +75,7 @@ public class ConnectedContent {
 		this.original.addAll(Arrays.asList(original));
 	}
 
-	public void addRevised(Collection<Token> revised) {
+	public void addRevised(Collection<? extends Token> revised) {
 		if (contentType.equals(ContentType.EQUAL))
 			this.original.addAll(revised);
 		this.revised.addAll(revised);

@@ -11,7 +11,7 @@
 
 <link href="https://fonts.googleapis.com/css?family=Roboto:100,400"
 	rel="stylesheet">
-<link rel="stylesheet" href="resources/css/main.css">
+<link rel="stylesheet" href='<c:url value="/resources/css/main.css"/>'>
 
 <style media="all">
 <c:if test="${not empty externalCSS}">
@@ -24,13 +24,13 @@
 <body>
 	<header id="page-header"> 
 	<a id="header-university-emblem" href="http://www.is.informatik.uni-wuerzburg.de/">
-		<img id="header-university-emblem" src="resources/img/uni-logo_white.png" />
+		<img id="header-university-emblem" src='<c:url value="/resources/img/uni-logo_white.png"/>' />
 	</a>
-	<a href="${pageContext.request.contextPath}/"id="page-header-title">Variance Viewer</a> </header>
+	<a href='<c:url value="/"/>' id="page-header-title">Variance Viewer</a> </header>
 	<main> <jsp:doBody /> </main>
 	<footer>
 	<hr>
-	<p>© 2018 Universität Würzburg <a href="https://www.uni-wuerzburg.de/sonstiges/impressum">Impressum</a></p>
+	<p>© 2018-2019 Universität Würzburg <a href="https://www.uni-wuerzburg.de/sonstiges/impressum">Impressum</a></p>
 	</footer>
 </body>
 </html>

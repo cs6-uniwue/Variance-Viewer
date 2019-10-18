@@ -1,15 +1,17 @@
 package de.uniwue.compare;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import de.uniwue.compare.token.AnnotationToken;
-import de.uniwue.compare.token.TextToken;
 import de.uniwue.compare.token.Token;
+import de.uniwue.compare.token.VarianceToken;
+import de.uniwue.compare.variance.VarianceClassifier;
+import de.uniwue.compare.variance.types.Variance;
+import de.uniwue.compare.variance.types.VarianceType;
 import difflib.Chunk;
 import difflib.Delta;
 import difflib.Delta.TYPE;
@@ -21,21 +23,26 @@ public class DiffCreator {
 	/**
 	 * Patch a diff with the original two lists of tokens to combine them into
 	 * connected content (Adds equal parts not present in the diff etc.)
+	 * Tokens are combined into connected contents by analyzing and classifying
+	 * them by different variance types.
 	 * 
 	 * @param originalLines          Lines form the first document
 	 * @param revisedLines           Lines from the second document
 	 * @param diffs                  Diffs between the two documents
 	 * @param diffAnnotationsInEqual Search more annotations in equal portions
-	 * @param normalizerStorage      Setting for normalizations
+	 * @param settings      		Setting for normalizations
 	 * @return
 	 */
 	public static List<ConnectedContent> patch(List<? extends Token> originalLines, List<? extends Token> revisedLines,
-			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, Settings normalizerStorage) {
+			List<? extends Delta<? extends Token>> diffs, boolean diffAnnotationsInEqual, Settings settings) {
 		List<ConnectedContent> content = new LinkedList<ConnectedContent>();
-
+		final List<Variance> variances = VarianceClassifier.sortVariances(settings.getVariances());
+		variances.remove(Variance.TYPOGRAPHY);
+		
 		int prevOriginalEndPosition = -1;
 		int prevRevisedEndPosition = -1;
 
+		// Loop over all deltas add missing deltas, combine and classify them into connected contents 
 		ConnectedContent curContent = null;
 		for (Delta<? extends Token> delta : diffs) {
 			final Chunk<? extends Token> original = delta.getOriginal();
@@ -44,61 +51,46 @@ public class DiffCreator {
 			final int currentRevisedPosition = revised.getPosition();
 			TYPE type = delta.getType();
 
-			// Get equal content in between changes (Delta only lists changes not equal
-			// content)
+			// Get equal content in between changes (Delta only lists changes not equal content)
 			if (currentOriginalPosition > prevOriginalEndPosition + 1
 					|| currentRevisedPosition > prevRevisedEndPosition + 1) {
 				List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
 						currentOriginalPosition);
 
 				if (diffAnnotationsInEqual) {
-					// Compare annotations in equal text
+					// Compare annotations in equal text (convert to AnnotationTokens and compare those)
 					List<? extends Token> equalRevisedLines = revisedLines.subList(prevRevisedEndPosition + 1,
 							currentRevisedPosition);
-
 					List<AnnotationToken> annotationTokens1 = equalOriginalLines.stream()
 							.map(t -> t.getAnnotationToken()).collect(Collectors.toList());
 					List<AnnotationToken> annotationTokens2 = equalRevisedLines.stream()
 							.map(t -> t.getAnnotationToken()).collect(Collectors.toList());
-
 					Patch<AnnotationToken> annotationPatch = DiffUtils.diff(annotationTokens1, annotationTokens2);
 					List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
-							annotationPatch.getDeltas(), false, normalizerStorage);
+							annotationPatch.getDeltas(), false, settings);
 
 					for (ConnectedContent annotationContent : annotationDiff) {
 						if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-							annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
+							annotationContent.setVarianceType(Variance.TYPOGRAPHY.getName());
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null
-								|| !curContent.getContentType().equals(annotationContent.getContentType())
-								|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
-							curContent = annotationContent;
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(annotationContent.getOriginal());
-							curContent.addRevised(annotationContent.getRevised());
-						}
+						curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
+								curContent, content, annotationContent.getContentType(), annotationContent.getVarianceType());
 					}
 				} else {
 					// Add to last equal content (if of same type) or create new content
-					if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
-						curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
-						content.add(curContent);
-					} else {
-						curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
-					}
+					curContent = addEqualContent(equalOriginalLines, curContent, content);
 				}
 			}
 
 			switch (type) {
 			case INSERT:
 				// Add to last insert content (if of same type) or create new content
-				curContent = insert(revised, curContent, content, normalizerStorage);
+				curContent = insert(revised, revisedLines, curContent, content, variances);
 				break;
 			case DELETE:
 				// Add to last delete content (if of same type) or create new content
-				curContent = delete(original, curContent, content, normalizerStorage);
+				curContent = delete(original, originalLines, curContent, content, variances);
 				break;
 			case CHANGE:
 				LinkedList<Token> originalTokens = new LinkedList<Token>(original.getLines());
@@ -106,12 +98,12 @@ public class DiffCreator {
 
 				// Compare normalized tokens to find connected diffs that can be equalized by
 				// Punctuation, Graphemics etc.
-				LinkedList<TextToken> originalTestTokens = normalize(originalTokens, normalizerStorage).stream()
-						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
-				LinkedList<TextToken> revisedTestTokens = normalize(revisedTokens, normalizerStorage).stream()
-						.map(t -> t.getTextToken()).collect(Collectors.toCollection(LinkedList::new));
+				LinkedList<VarianceToken> originalTestTokens = originalTokens.stream()
+						.map(t -> t.getVarianceToken(variances)).collect(Collectors.toCollection(LinkedList::new));
+				LinkedList<VarianceToken> revisedTestTokens = revisedTokens.stream()
+						.map(t -> t.getVarianceToken(variances)).collect(Collectors.toCollection(LinkedList::new));
 
-				Patch<TextToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
+				Patch<VarianceToken> textPatch = DiffUtils.diff(originalTestTokens, revisedTestTokens);
 				List<? extends Delta<? extends Token>> testDeltas = textPatch.getDeltas();
 
 				int lastOriginalPosition = -1;
@@ -130,66 +122,33 @@ public class DiffCreator {
 
 							if (originalTest.getContent().length() > 0 && revisedTest.getContent().length() > 0) {
 								// Change
-								VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest,
-										ContentType.CHANGE, normalizerStorage);
-								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-										&& !varianceType.equals(VarianceType.ABBREVIATION))
-									highlightTokens(originalTest, revisedTest);
-								else {
-									originalTest.highlightEverything();
-									revisedTest.highlightEverything();
-								}
+								String varianceType = VarianceClassifier.classifyTouple(originalTest, revisedTest,
+										ContentType.CHANGE, variances);
+								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
-								if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-										|| !curContent.getVarianceType().equals(varianceType)) {
-									curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
-									curContent.setVarianceType(varianceType);
-									content.add(curContent);
-								} else {
-									curContent.addOriginal(originalTest);
-									curContent.addRevised(revisedTest);
-								}
+								curContent = addContent(Arrays.asList(originalTest), Arrays.asList(revisedTest), curContent, content, 
+										ContentType.CHANGE, varianceType);
 							} else {
 								// Delete or Insert
-								VarianceType varianceType = null;
+								String varianceType = null;
 								if (originalTest.getContent().length() > 0) {
-									varianceType = getVarianceTypeSingle(originalTest, ContentType.INSERT,
-											normalizerStorage);
+									varianceType = VarianceClassifier.classifySingle(originalTest, originalTokens, ContentType.DELETE,
+											settings.getVariances());
 								} else if (revisedTest.getContent().length() > 0) {
-									varianceType = getVarianceTypeSingle(revisedTest, ContentType.DELETE,
-											normalizerStorage);
+									varianceType = VarianceClassifier.classifySingle(revisedTest, revisedTokens, ContentType.INSERT,
+											settings.getVariances());
 								}
 
-								if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-										&& !varianceType.equals(VarianceType.ABBREVIATION))
-									highlightTokens(originalTest, revisedTest);
-								else {
-									originalTest.highlightEverything();
-									revisedTest.highlightEverything();
-								}
+								highlightTokens(originalTest, revisedTest, varianceType);
 
 								// Add to last content (if of same type) or create new content
 								if (originalTest.getContent().length() > 0) {
-									if (curContent == null || !curContent.getContentType().equals(ContentType.INSERT)
-											|| !curContent.getVarianceType().equals(varianceType)) {
-										curContent = new ConnectedContent(ContentType.INSERT);
-										curContent.addOriginal(originalTest);
-										curContent.setVarianceType(varianceType);
-										content.add(curContent);
-									} else {
-										curContent.addOriginal(originalTest);
-									}
+									curContent = addContent(Arrays.asList(originalTest), new LinkedList<>(), curContent, content,
+											ContentType.INSERT, varianceType);
 								} else if (revisedTest.getContent().length() > 0) {
-									if (curContent == null || !curContent.getContentType().equals(ContentType.DELETE)
-											|| !curContent.getVarianceType().equals(varianceType)) {
-										curContent = new ConnectedContent(ContentType.DELETE);
-										curContent.addOriginal(revisedTest);
-										curContent.setVarianceType(varianceType);
-										content.add(curContent);
-									} else {
-										curContent.addOriginal(originalTest);
-									}
+									curContent = addContent(new LinkedList<>(), Arrays.asList(revisedTest), curContent, content,
+											ContentType.DELETE, varianceType);
 								}
 							}
 						}
@@ -203,31 +162,24 @@ public class DiffCreator {
 
 					if (originalCount == 0 && revisedCount > 0) {
 						// Add to last insert content (if of same type) or create new content
-						curContent = insert(unequalTokensRevised, curContent, content, normalizerStorage);
+						curContent = insert(unequalTokensRevised, revisedLines, curContent, content, variances);
 					} else if (originalCount > 0 && revisedCount == 0) {
 						// Add to last delete content (if of same type) or create new content
-						curContent = delete(unequalTokensOriginal, curContent, content, normalizerStorage);
+						curContent = delete(unequalTokensOriginal, originalLines, curContent, content, variances);
 					} else if (originalCount > 0 && revisedCount > 0) {
 						unequalTokensOriginal.forEach(t -> t.highlightEverything());
 						unequalTokensRevised.forEach(t -> t.highlightEverything());
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-								|| !curContent.getVarianceType().equals(VarianceType.CONTENT)) {
-							curContent = new ConnectedContent(unequalTokensOriginal, unequalTokensRevised,
-									ContentType.CHANGE);
-							curContent.setVarianceType(VarianceType.CONTENT);
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(unequalTokensOriginal);
-							curContent.addRevised(unequalTokensRevised);
-						}
+						curContent = addContent(unequalTokensOriginal, unequalTokensRevised, curContent, content,
+								ContentType.CHANGE, Variance.CONTENT.getName());
 					}
 
 					lastOriginalPosition = testDelta.getOriginal().last();
 					lastRevisedPosition = testDelta.getRevised().last();
 				}
 
+				// Test equal tokens after the end of the last change
 				if (lastOriginalPosition + 1 < originalTestTokens.size()) {
 					// Test Equal on end
 					LinkedList<Token> equalTokensOriginal = new LinkedList<Token>(
@@ -238,26 +190,13 @@ public class DiffCreator {
 					for (int i = 0; i < equalTokensOriginal.size(); i++) {
 						Token originalTest = equalTokensOriginal.get(i);
 						Token revisedTest = equalTokensRevised.get(i);
-						VarianceType varianceType = getVarianceTypeTouple(originalTest, revisedTest, ContentType.CHANGE,
-								normalizerStorage);
-						if (!varianceType.equals(VarianceType.TYPOGRAPHY)
-								&& !varianceType.equals(VarianceType.ABBREVIATION))
-							highlightTokens(originalTest, revisedTest);
-						else {
-							originalTest.highlightEverything();
-							revisedTest.highlightEverything();
-						}
+						String varianceType = VarianceClassifier.classifyTouple(originalTest, revisedTest, ContentType.CHANGE,
+								variances);
+						highlightTokens(originalTest, revisedTest, varianceType);
 
 						// Add to last content (if of same type) or create new content
-						if (curContent == null || !curContent.getContentType().equals(ContentType.CHANGE)
-								|| !curContent.getVarianceType().equals(varianceType)) {
-							curContent = new ConnectedContent(originalTest, revisedTest, ContentType.CHANGE);
-							curContent.setVarianceType(varianceType);
-							content.add(curContent);
-						} else {
-							curContent.addOriginal(originalTest);
-							curContent.addRevised(revisedTest);
-						}
+						curContent = addContent(Arrays.asList(originalTest), Arrays.asList(revisedTest), curContent, content,
+								ContentType.CHANGE, varianceType);
 					}
 				}
 
@@ -267,8 +206,7 @@ public class DiffCreator {
 			prevOriginalEndPosition = original.last();
 			prevRevisedEndPosition = revised.last();
 		}
-		// Add equals that are the end of the document (Delta only lists changes not
-		// equal content)
+		// Add equals that are the end of the document (Delta only lists changes not equal content)
 		if (originalLines.size() > prevOriginalEndPosition + 1) {
 			List<? extends Token> equalOriginalLines = originalLines.subList(prevOriginalEndPosition + 1,
 					originalLines.size());
@@ -284,38 +222,103 @@ public class DiffCreator {
 
 				Patch<AnnotationToken> annotationPatch = DiffUtils.diff(annotationTokens1, annotationTokens2);
 				List<ConnectedContent> annotationDiff = patch(equalOriginalLines, equalRevisedLines,
-						annotationPatch.getDeltas(), false, normalizerStorage);
+						annotationPatch.getDeltas(), false, settings);
 
 				for (ConnectedContent annotationContent : annotationDiff) {
 					if (!annotationContent.getContentType().equals(ContentType.EQUAL))
-						annotationContent.setVarianceType(VarianceType.TYPOGRAPHY);
+						annotationContent.setVarianceType(Variance.TYPOGRAPHY.getName());
 
 					// Add to last content (if of same type) or create new content
-					if (curContent == null || !curContent.getContentType().equals(annotationContent.getContentType())
-							|| !curContent.getVarianceType().equals(annotationContent.getVarianceType())) {
-						curContent = annotationContent;
-						content.add(curContent);
-					} else {
-						curContent.addOriginal(annotationContent.getOriginal());
-						curContent.addRevised(annotationContent.getRevised());
-					}
+					curContent = addContent(annotationContent.getOriginal(), annotationContent.getRevised(),
+							curContent, content, annotationContent.getContentType(), annotationContent.getVarianceType());
 				}
 
 				content.addAll(annotationDiff);
 			} else {
 				// Add to last equal content (if of same type) or create new content
-				if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
-					curContent = new ConnectedContent(new LinkedList<Token>(equalOriginalLines));
-					content.add(curContent);
-				} else {
-					curContent.addOriginal(new LinkedList<Token>(equalOriginalLines));
-				}
+				curContent = addEqualContent(equalOriginalLines, curContent, content);
 			}
 		}
-
-		return content;
+		
+		
+		// Post classification (check for variance types spanning over multiple words)
+		// Test all consecutive connected components of type "CONTENT"
+		List<ConnectedContent> postcorrection = new LinkedList<>();
+		List<ConnectedContent> backlog = new LinkedList<>();
+		List<String> backlogVariances = new ArrayList<>();
+		backlogVariances.add(Variance.CONTENT.getName());
+		for (Variance var : variances) {
+			if (var.getType().equals(VarianceType.DISTANCE))
+				backlogVariances.add(var.getName());
+		}
+		for (ConnectedContent c : content) {	
+			if (backlogVariances.contains(c.getVarianceType())) {
+				backlog.add(c);
+			} else {
+				if (backlog.size() > 0) {
+					// Work on backlog
+					postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog, variances));
+				}
+				backlog = new LinkedList<>();
+				postcorrection.add(c);
+			}
+		}
+		if (backlog.size() > 0) {
+			// Last work on result backlog
+			postcorrection.addAll(VarianceClassifier.classifyMultiple(backlog, variances));
+		}
+	
+		return postcorrection;
 	}
 
+	/**
+	 * Add to last content (if of same type) or create new content.
+	 * Return the ConnectedContent to which it was added to.
+	 * 
+	 * @param original
+	 * @param revised
+	 * @param curContent
+	 * @param contents
+	 * @param contentType
+	 * @param varianceType
+	 * @return
+	 */
+	private static ConnectedContent addContent(List<? extends Token> original, List<? extends Token> revised, ConnectedContent curContent,
+			List<ConnectedContent> contents, ContentType contentType, String varianceType ) {
+
+		if (curContent == null || !curContent.getContentType().equals(contentType)
+				|| !curContent.getVarianceType().equals(varianceType)) {
+			curContent = new ConnectedContent(original, revised, contentType, varianceType);
+			contents.add(curContent);
+		} else {
+			if(original.size() > 0)
+				curContent.addOriginal(original);
+			if(revised.size() > 0)
+				curContent.addRevised(revised);
+		}
+		return curContent;
+	}
+	
+	/**
+	 * Add this equal to last content (if is also equal) or create new equal content.
+	 * Return the ConnectedContent to which it was added to.
+	 * 
+	 * @param tokens
+	 * @param curContent
+	 * @param contents
+	 * @return
+	 */
+	private static ConnectedContent addEqualContent(List<? extends Token> tokens, ConnectedContent curContent,
+			List<ConnectedContent> contents) {
+		if (curContent == null || !curContent.getContentType().equals(ContentType.EQUAL)) {
+			curContent = new ConnectedContent(new LinkedList<Token>(tokens));
+			contents.add(curContent);
+		} else {
+			curContent.addOriginal(tokens);
+		}
+		return curContent;
+	}
+	
 	/**
 	 * Process chunks of insert changes into ConnectedContents
 	 * 
@@ -325,9 +328,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent insert(Chunk<? extends Token> revised, ConnectedContent curContent,
-			List<ConnectedContent> allContent, Settings normalizerStorage) {
-		return prosessInsertAndDelete(revised.getLines(), curContent, allContent, normalizerStorage,
+	private static ConnectedContent insert(Chunk<? extends Token> revised, List<? extends Token> revisedLines, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(revised.getLines(), revisedLines, curContent, allContent, variances,
 				ContentType.INSERT);
 	}
 
@@ -340,9 +343,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent delete(Chunk<? extends Token> original, ConnectedContent curContent,
-			List<ConnectedContent> allContent, Settings normalizerStorage) {
-		return prosessInsertAndDelete(original.getLines(), curContent, allContent, normalizerStorage,
+	private static ConnectedContent delete(Chunk<? extends Token> original, List<? extends Token> originalDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(original.getLines(), originalDocument, curContent, allContent, variances,
 				ContentType.DELETE);
 	}
 
@@ -355,9 +358,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent insert(List<? extends Token> revised, ConnectedContent curContent,
-			List<ConnectedContent> allContent, Settings normalizerStorage) {
-		return prosessInsertAndDelete(revised, curContent, allContent, normalizerStorage, ContentType.INSERT);
+	private static ConnectedContent insert(List<? extends Token> revised, List<? extends Token> revisedDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(revised, revisedDocument, curContent, allContent, variances, ContentType.INSERT);
 	}
 
 	/**
@@ -369,9 +372,9 @@ public class DiffCreator {
 	 * @param normalizerStorage Normalize settings
 	 * @return Connected content
 	 */
-	private static ConnectedContent delete(List<? extends Token> original, ConnectedContent curContent,
-			List<ConnectedContent> allContent, Settings normalizerStorage) {
-		return prosessInsertAndDelete(original, curContent, allContent, normalizerStorage, ContentType.DELETE);
+	private static ConnectedContent delete(List<? extends Token> original, List<? extends Token> originalDocument, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances) {
+		return prosessInsertAndDelete(original, originalDocument, curContent, allContent, variances, ContentType.DELETE);
 	}
 
 	/**
@@ -386,20 +389,19 @@ public class DiffCreator {
 	 *                          DELETE)
 	 * @return Connected content
 	 */
-	private static ConnectedContent prosessInsertAndDelete(List<? extends Token> tokens, ConnectedContent curContent,
-			List<ConnectedContent> allContent, Settings normalizerStorage, ContentType curContentType) {
+	private static ConnectedContent prosessInsertAndDelete(List<? extends Token> tokens, List<? extends Token> document, ConnectedContent curContent,
+			List<ConnectedContent> allContent, List<Variance> variances, ContentType curContentType) {
 		if (!curContentType.equals(ContentType.INSERT) && !curContentType.equals(ContentType.DELETE))
 			throw new IllegalArgumentException(
 					"Expects content of type INSERT or DELETE. (Was " + curContentType + ")");
 
 		for (Token token : tokens) {
 			token.highlightEverything();
-			VarianceType curVariance = token instanceof AnnotationToken ? VarianceType.TYPOGRAPHY
-					: getVarianceTypeSingle(token, curContentType, normalizerStorage);
+			String curVariance = token instanceof AnnotationToken ? Variance.TYPOGRAPHY.getName()
+					: VarianceClassifier.classifySingle(token, document, curContentType, variances);
 			if (curContent == null || !curContent.getContentType().equals(curContentType)
 					|| !curContent.getVarianceType().equals(curVariance)) {
-				curContent = new ConnectedContent(curContentType);
-				curContent.setVarianceType(curVariance);
+				curContent = new ConnectedContent(curContentType, curVariance);
 				allContent.add(curContent);
 			}
 			if (curContentType.equals(ContentType.INSERT))
@@ -418,203 +420,31 @@ public class DiffCreator {
 	 * @param token1 Token one to highlight
 	 * @param token2 Token two to highlight
 	 */
-	private static void highlightTokens(Token token1, Token token2) {
-		List<long[]> highlightToken1 = new LinkedList<>();
-		List<long[]> highlightToken2 = new LinkedList<>();
+	private static void highlightTokens(Token token1, Token token2, String varianceType) {
+		if (!varianceType.equals(Variance.TYPOGRAPHY.getName())) {
 
-		Patch<String> annotationPatch = DiffUtils.diff(Arrays.asList(token1.getContent().split("(?!^)")),
-				Arrays.asList(token2.getContent().split("(?!^)")));
-		for (Delta<String> delta : annotationPatch.getDeltas()) {
-			TYPE type = delta.getType();
-			if (type.equals(TYPE.INSERT) || type.equals(TYPE.CHANGE)) {
-				Chunk<String> insert = delta.getRevised();
-				highlightToken2.add(new long[] { insert.getPosition(), insert.last() + 1 });
+			List<long[]> highlightToken1 = new LinkedList<>();
+			List<long[]> highlightToken2 = new LinkedList<>();
+
+			Patch<String> annotationPatch = DiffUtils.diff(Arrays.asList(token1.getContent().split("(?!^)")),
+					Arrays.asList(token2.getContent().split("(?!^)")));
+			for (Delta<String> delta : annotationPatch.getDeltas()) {
+				TYPE type = delta.getType();
+				if (type.equals(TYPE.INSERT) || type.equals(TYPE.CHANGE)) {
+					Chunk<String> insert = delta.getRevised();
+					highlightToken2.add(new long[] { insert.getPosition(), insert.last() + 1 });
+				}
+
+				if (type.equals(TYPE.DELETE) || type.equals(TYPE.CHANGE)) {
+					Chunk<String> delete = delta.getOriginal();
+					highlightToken1.add(new long[] { delete.getPosition(), delete.last() + 1 });
+				}
 			}
-
-			if (type.equals(TYPE.DELETE) || type.equals(TYPE.CHANGE)) {
-				Chunk<String> delete = delta.getOriginal();
-				highlightToken1.add(new long[] { delete.getPosition(), delete.last() + 1 });
-			}
+			token1.setHighlight(highlightToken1);
+			token2.setHighlight(highlightToken2);
+		} else {
+			token1.highlightEverything();
+			token2.highlightEverything();
 		}
-		token1.setHighlight(highlightToken1);
-		token2.setHighlight(highlightToken2);
-	}
-
-	/**
-	 * Classify the changes in an insert or delete token. Normalizes the token to
-	 * identify the variance type step by step.
-	 * 
-	 * Separation -> Punctuation -> (else) Content
-	 * 
-	 * @param content           Token to classify
-	 * @param type              ContentType of the variance type (preferably INSERT
-	 *                          or DELETE. CHANGE will be handled like INSERT/DELETE
-	 *                          and EQUAL will not be set to VarianceType NONE)
-	 * @param normalizerStorage Normalize settings and rules
-	 * @return Variance Type of the token
-	 */
-	private static VarianceType getVarianceTypeSingle(Token content, ContentType type, Settings normalizerStorage) {
-		if (type.equals(ContentType.INSERT) || type.equals(ContentType.DELETE) || type.equals(ContentType.CHANGE)) {
-			String contentWork = normalizeLineSEPARATION(content.getContent());
-			if (contentWork.equals(""))
-				return VarianceType.SEPARATION;
-			else if (removePunctuation(contentWork, normalizerStorage).equals(""))
-				return VarianceType.PUNCTUATION;
-			else
-				return VarianceType.CONTENT;
-		}
-		return VarianceType.NONE;
-	}
-
-	/**
-	 * Classify the changes in two tokens to variance types. Normalizes the tokens
-	 * to identify the variance types step by step.
-	 * 
-	 * Equal -> Separation -> Typography -> Punctuation -> Graphemics ->
-	 * Abbreviations -> (else) Content
-	 * 
-	 * @param original          Token from the original text
-	 * @param revised           Token from the revised text
-	 * @param type              Content type (Equal, Insert, Delete, Change)
-	 * @param normalizerStorage Normalize settings and rules
-	 * @return Variance Type of the tuple of tokens
-	 */
-	private static VarianceType getVarianceTypeTouple(Token original, Token revised, ContentType type,
-			Settings normalizerStorage) {
-		if (type.equals(ContentType.EQUAL))
-			return VarianceType.NONE;
-
-		String originalWork = normalizeLineSEPARATION(original.getContent());
-		String revisedWork = normalizeLineSEPARATION(revised.getContent());
-
-		// Test for Separation
-		if (originalWork.equals(revisedWork) && original.getAnnotations().equals(revised.getAnnotations()))
-			return VarianceType.SEPARATION;
-
-		// Test for Typography
-		if (originalWork.equals(revisedWork))
-			return VarianceType.TYPOGRAPHY;
-
-		// Test for Punctuation
-		if (removePunctuation(originalWork, normalizerStorage)
-				.equals(removePunctuation(revisedWork, normalizerStorage)))
-			return VarianceType.PUNCTUATION;
-
-		// Test for Graphemics
-		if (normalizeGraphemics(originalWork, normalizerStorage)
-				.equals(normalizeGraphemics(revisedWork, normalizerStorage)))
-			return VarianceType.GRAPHEMICS;
-
-		// Test for Abbreviations
-		if (normalizeAbbreviations(originalWork, normalizerStorage)
-				.equals(normalizeAbbreviations(revisedWork, normalizerStorage)))
-			return VarianceType.ABBREVIATION;
-
-		return VarianceType.CONTENT;
-	}
-
-	/**
-	 * Normalize tokens to check for different variance types. E.g. "Test" "Test."
-	 * can both be normalized to "Test", which helps to identify underlying variance
-	 * types that can be classified. (Punctuation in this case)
-	 * 
-	 * @param list              list of tokens to normalize
-	 * @param normalizerStorage normalize settings (Config file)
-	 * @return List of normalized tokens
-	 */
-	private static LinkedList<Token> normalize(List<Token> list, Settings normalizerStorage) {
-		LinkedList<Token> normalized = new LinkedList<Token>();
-
-		for (Token token : list) {
-			String content = normalize(token.getContent(), normalizerStorage);
-			normalized.add(new Token(token.getBegin(), token.getEnd(), content, token.getContentTag(), token.getAnnotations()));
-		}
-		return normalized;
-	}
-
-	/**
-	 * Normalize a token to check for different variance types. E.g. "Test" "Test."
-	 * can both be normalized to "Test", which helps to identify underlying variance
-	 * types that can be classified. (Punctuation in this case)
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings (Config file)
-	 * @return normalized token
-	 */
-	private static String normalize(String token, Settings normalizerStorage) {
-		return normalizeGraphemics(
-				removePunctuation(normalizeAbbreviations(normalizeLineSEPARATION(token), normalizerStorage),
-						normalizerStorage),
-				normalizerStorage);
-	}
-
-	/**
-	 * Normalize a token to check for line separation. E.g. "Test\n" "Test" can be
-	 * normalized to "Test", which helps to identify a line separation variance
-	 * type.
-	 * 
-	 * @param token token to normalize
-	 * @return normalized token
-	 */
-	private static String normalizeLineSEPARATION(String token) {
-		return token.replace(System.lineSeparator(), "");
-	}
-
-	/**
-	 * Normalize a token to check for punctuations. E.g. "Test." "Test" can be
-	 * normalized to "Test" (if given "." as punctuation rule), which helps to
-	 * identify a punctuation variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all punctuations (Config
-	 *                          file)
-	 * @return normalized token
-	 */
-	private static String removePunctuation(String token, Settings normalizerStorage) {
-		String punctuations = "";
-		for (String punctuation : normalizerStorage.getPunctuation())
-			punctuations += punctuation;
-		if (punctuations.length() > 0)
-			return token.replaceAll("[" + Pattern.quote(punctuations) + "]", "");
-		else
-			return token;
-	}
-
-	/**
-	 * Normalize a token to check for graphemic changes. E.g. "TestÄ" "TestAe" can
-	 * be normalized to "TestAe" (if given the graphemic rule "Ä->Ae"), which helps
-	 * to identify a graphemic variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all graphemic rules (Config
-	 *                          file)
-	 * @return normalized token
-	 */
-	private static String normalizeGraphemics(String token, Settings normalizerStorage) {
-		String normalizedToken = token;
-		normalizedToken = normalizedToken.toLowerCase();
-		for (Map.Entry<String, String> touple : normalizerStorage.getGraphemes().entrySet())
-			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
-
-		return normalizedToken;
-	}
-
-	/**
-	 * Normalize a token to check for abbreviation changes. E.g. "TestEx"
-	 * "TestExample" can be normalized to "TestExample" (if given the abbreviation
-	 * rule "Ex->Example"), which helps to identify a abbreviation variance type.
-	 * 
-	 * @param token             token to normalize
-	 * @param normalizerStorage normalize settings with all abbreviation rules
-	 *                          (Config file)
-	 * @return normalized token
-	 */
-	private static String normalizeAbbreviations(String token, Settings normalizerStorage) {
-		String normalizedToken = token;
-		for (Map.Entry<String, String> touple : normalizerStorage.getAbbreviations().entrySet()) {
-			normalizedToken = normalizedToken.replaceAll(Pattern.quote(touple.getKey()), touple.getValue());
-		}
-
-		return normalizedToken;
 	}
 }
