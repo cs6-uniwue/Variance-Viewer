@@ -1,8 +1,9 @@
 ![viewer](https://user-images.githubusercontent.com/23743591/45493637-8840c880-b76f-11e8-8efc-4e92d986aea6.png)
 
+
 # Variance-Viewer
 
-Variance-Viewer is a automatic open-source tool for text comparison with an extendable rule based variance analysis.
+Variance-Viewer is an automatic open-source tool for text comparison with an extendable rule based variance analysis.
 Documents are compared on word basis, while their variance is displayed on character basis.
 
 *Plain text* documents, as well as *TEI* documents are supported as input, while *pdf*, *TEI* and *json* are supported as an output format.
@@ -14,16 +15,19 @@ This tool has been created in a project of the [Chair of Computer Science VI - A
 
 
 ## Table of Contents
-- [Installing](#installing)
+- [Installation](#installation)
   * [Linux](#linux)
   * [Windows](#windows)
   * [Mac OS X](#mac-os-x)
-- [Running](#running)
+- [Usage](#usage)
 - [Configuration](#configuration)
 	* [User defined Variances](#user-defined-variances)
 	* [Additional Settings](#additional-settings)
 
-## Installing
+_Additional information about developing for the Variance-Viewer [see here](documentation/development.md) and more information about the functionality and procedures [see here](documentation/algorithm.md)._
+
+
+## Installation
 
 ### Linux
 For this guide tomcat version 8 and Ubuntu is used.
@@ -109,7 +113,7 @@ or `cp Variance-Viewer/target/Variance-Viewer.war /usr/local/Cellar/tomcat/[vers
 to restart `brew services restart tomcat`
 
 
-## Running
+## Usage
 ### Access in browser
 Go to `localhost:8080/Variance-Viewer`.
 
@@ -169,7 +173,7 @@ These types can be added to a settings file, which can be selected before the te
 The pre existing ones include:
 * TYPOGRAPHY - Only present in TEI texts. Represents the changes in how text is displayed (utilizes the rend attribute) e.g. `<p rend="xxl">Test</p>` changed to `<p>Test</p>`
 * SEPARATION - Represents the separation changes between multiple tokens. e.g. "Thistest" changed to "This test" 
-* CONTENT - The fallback variance type for all changes that can not be defined as one specific variance.
+* CONTENT - The fallback variance type for all changes that can not be classified as any other variance.
 
 Users can in addition to the existing variance types define their own, as follows:
 ```
