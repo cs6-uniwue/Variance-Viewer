@@ -70,7 +70,7 @@
 				ſ ss<br>
 				PAGEBREAK
 			</code>
-			<p>These rules would remove every occurence of PAGEBREAK from both files and replace every "ſ" with "ss" before comparing the texts.</p>
+			<p>These rules would remove every occurrence of PAGEBREAK from both files and replace every "ſ" with "ss" before comparing the texts.</p>
 		</section>
 		<section id="help-confirm">
 			<button id="help-close" type="button">Close</button>
