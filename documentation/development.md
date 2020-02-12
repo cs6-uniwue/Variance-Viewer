@@ -1,6 +1,6 @@
-Variance Viewer: Development
+Variance-Viewer: Development
 ============================
-The Variance Viewer is a web application written in Java.
+The Variance-Viewer is a web application written in Java.
 It uses Maven as building tool and is a Spring application.
 
 Frameworks, tools and resources
@@ -16,7 +16,7 @@ Important notes for development from source
 Variance-Viewer can be developed by changing the sources and updating the installation as it is described in [_Installation_ in the README](../README.md#installation).
 Only one change should be noted. In order to edit the style of the application SASS is needed.
 A base compiled version of the current [scss](https://github.com/cs6-uniwue/Variance-Viewer/blob/master/src/main/webapp/resources/scss/main.scss) can be found in the [css directory](https://github.com/cs6-uniwue/Variance-Viewer/blob/master/src/main/webapp/resources/css/main.css).
-In order to edit the css one must make the changes in the scss file and compile it into the css folder as described in the official [SASS guide](https://sass-lang.com/guide)
+In order to edit the css one must make the changes in the scss file and compile it into the css folder as described in the official [SASS guide](https://sass-lang.com/guide).
 
 e.g. (inside the Variance-Viewer folder)
 ```
@@ -25,7 +25,7 @@ sass --watch src/main/webapp/resources/scss:src/main/webapp/resources/css --styl
 
 Spring
 ------
-Spring Framework is a application framwork and hereby used to create a web application for a Tomcat Server.
+Spring Framework is a application framework and hereby used to create a web application for a Tomcat Server.
 
 The base configuration and code for the web part of Variance-Viewer can be found in 
 [src/main/java/de/uniwue/web/](https://github.com/cs6-uniwue/Variance-Viewer/tree/master/src/main/java/de/uniwue/web)
@@ -91,7 +91,7 @@ src/main/java/de/uniwue/compare/
 
 Translate
 ---------
-The translater code in [src/main/java/de/uniwue/translate/](https://github.com/cs6-uniwue/Variance-Viewer/tree/master/src/main/java/de/uniwue/translate) is used to read and convert the comparison data from and into different formats, as for example TEI.
+The translator code in [src/main/java/de/uniwue/translate/](https://github.com/cs6-uniwue/Variance-Viewer/tree/master/src/main/java/de/uniwue/translate) is used to read and convert the comparison data from and into different formats, as for example TEI.
 
 ```
 src/main/java/de/uniwue/translate/
