@@ -61,12 +61,12 @@ This guide uses eclipse to simplify the setup
 * Import Project
 	* Right click on `Variance-Viewer` -> `Configure` -> `Convert to Maven Project` -> `Finish`
 * Update maven project (if not updated automatically)
-	* Rightclick on `Variance-Viewer` -> `Maven` -> `Update Project...` -> `OK`
-* Start Variance Viewer
+	* Right click on `Variance-Viewer` -> `Maven` -> `Update Project...` -> `OK`
+* Start Variance-Viewer
 	* Right click on `Variance-Viewer` -> `Run As` -> `Run on Server`.
 
 ### Mac OS X
-This guid uses homebrew (please adjust accordingly for your setup)
+This guid uses Homebrew (please adjust accordingly for your setup)
 * Install Homebrew (see https://brew.sh/).
 * Install required packages:
 	* `brew cask install java`
@@ -93,7 +93,7 @@ Open `localhost:8080/Variance-Viewer` in your browser of choice. (Recommended: G
 
 ## Configuration ##
 Variance-Viewer contains a default configuration file (src/webapp/WEB-INF/default.txt) with a few settings that can be set before running the application. 
-A user can also provide a configutarion file by adding it at the home menu, with a typical settings file beeing as follows:
+A user can also provide a configuration file by adding it at the home menu, with a typical settings file being as follows:
 (Lines starting with "#" are comments and will not be interpreted)
 ```
 # User defined Variances
@@ -140,15 +140,15 @@ head p
 (The currently used default settings file, can be downloaded when opening the application and selecting ``default(⇓)`` )
 
 ### User defined Variances
-The variance viewer allows users to define variance types in addition to pre existing ones.
+The Variance-Viewer allows users to define variance types in addition to pre-existing ones.
 These types can be added to a settings file, which can be selected before the text comparisons.
 
-The pre existing ones include:
-* TYPOGRAPHY - Only present in TEI texts. Represents the changes in how text is displayed (utilizes the rend attribute) e.g. `<p rend="xxl">Test</p>` changed to `<p>Test</p>`
-* SEPARATION - Represents the separation changes between multiple tokens. e.g. "Thistest" changed to "This test" 
+The pre-existing ones include:
+* TYPOGRAPHY - Only present in TEI texts. Represents the changes in how text is displayed (utilizes the rend attribute) e.g. `<p rend="xxl">Test</p>` changed to `<p>Test</p>`.
+* SEPARATION - Represents the separation changes between multiple tokens. e.g. "Thistest" changed to "This test".
 * CONTENT - The fallback variance type for all changes that can not be classified as any other variance.
 
-Users can in addition to the existing variance types define their own, as follows:
+In addition to the existing variance types, users can define their own, as follows:
 ```
 :<name>[<type>|<color>]:
 <rules/settings>
@@ -156,33 +156,33 @@ Users can in addition to the existing variance types define their own, as follow
 ```
 
 `<name>`: Name to use for ones variance type
-	(Any Combination of letters and numbers, starting with a letter)
+	(Any combination of letters and numbers, starting with a letter)
 
 `<type>`: One of the following user definable variances:
 * MISSING (M): (sequence of) characters missing in one word but present in the other.
-	e.g. missing characters "x" with "Testx" changed to "Test" 
+	e.g. missing characters "x" with "Testx" changed to "Test".
 * DISTANCE (D): levenshtein distance on character basis between two words (with min and max distance).
-	e.g. min distance:0 and max distance:2 with "Test" changed to "Text" 
+	e.g. min distance:0 and max distance:2 with "Test" changed to "Text".
 * REPLACEMENT (R): Changes between words, where a sequence of characters of one word are changed to another sequence of characters in the other word.
-	e.g. Replacement Rule "ae ä" with "Bär" changed to "Baer"
+	e.g. Replacement Rule "ae ä" with "Bär" changed to "Baer".
 
-`<color>`: In hex-code defined rgb color to represent a variance type. e.g. "#ff0000" for red
+`<color>`: In hex-code defined rgb color to represent a variance type. e.g. "#ff0000" for red.
 
-`<rules/settings>`: Variance specific rules and settings of the variances in <type>
-MISSING (M): Character (sequences) separated by whitespaces
+`<rules/settings>`: Variance specific rules and settings of the variances in <type>.
+MISSING (M): Character (sequences) separated by whitespaces.
 e.g. 
 ```
 a b cd 
 e f g
 ```				 
 
-DISTANCE (D): Min and max distance value, separated by whitespace
+DISTANCE (D): Min and max distance value, separated by whitespace.
 e.g.
 ```
 0 3
 ```
 REPLACEMENT (R): A list of (bidirectional) replacement rules. 
-	Each rule is in one line and separates the replacement by a space
+	Each rule is in one line and separates the replacement by a space.
 e.g.
 ```
 ae a
@@ -192,7 +192,7 @@ ae a
 > **NOTE**: Previous settings files only allowed predefined variance classes. Those settings files will still work, but we recommend using the above syntax in the future.
 
 ### Additional Settings
-Variance Viewer does in addition to the variance settings, allow the configuration of the following settings:
+In addition to the variance settings, Variance-Viewer allows the configuration of the following settings:
 #### css
 The `:css:` tag allows the user to specify the visual appearance of the viewer.
 A specific font for example or a visual appearance for TEI render attributes (rend) can be set here.
@@ -216,4 +216,4 @@ The following setting will compare every text between `head` and `p` tags betwee
 head p
 :contenttags:
 ```
-(You normaly do not need to change this setting and it is only used in the comparison of TEI documents) 
+(You normally do not need to change this setting and it is only used in the comparison of TEI documents).
