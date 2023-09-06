@@ -9,8 +9,6 @@ Documents are compared on word basis, while their variance is displayed on chara
 *Plain text* documents, as well as *TEI* documents are supported as input, while *pdf*, *TEI* and *json* are supported as an output format.
 The json output format is simple and can for example be examined further with the semantic analysis tool [webAthen](http://webathen.informatik.uni-wuerzburg.de/)
 
-Please feel free to test the Variance-Viewer for yourself with the official [web application](http://variance-viewer.informatik.uni-wuerzburg.de/).
-
 This tool has been created in a project of the [Chair of Computer Science VI - Artificial Intelligence and Applied Computer Science of the University of Würzburg](http://www.is.informatik.uni-wuerzburg.de/en/homepage/), in the working group of [Prof. Dr. Frank Puppe](http://www.is.informatik.uni-wuerzburg.de/staff/puppe-frank/).
 
 
