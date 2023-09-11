@@ -31,9 +31,9 @@ _Additional information about developing for the Variance-Viewer [see here](docu
 ### Docker
 * Install and setup [Docker](https://docs.docker.com/engine/install/)
 * Build Docker Image
-	`docker-compose build`
+	* `docker-compose build`
 * Create and run Docker container
-	`docker-compose up`
+	* `docker-compose up`
 
 ### Linux
 This guide uses tomcat 8 and Ubuntu (please adjust accordingly for your setup)
