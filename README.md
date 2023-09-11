@@ -14,6 +14,7 @@ This tool has been created in a project of the [Chair of Computer Science VI - A
 
 ## Table of Contents
 - [Installation](#installation)
+  * [Docker](#docker)
   * [Linux](#linux)
   * [Windows](#windows)
   * [Mac OS X](#mac-os-x)
@@ -26,6 +27,13 @@ _Additional information about developing for the Variance-Viewer [see here](docu
 
 
 ## Installation
+
+### Docker
+* Install and setup [Docker](https://docs.docker.com/engine/install/)
+* Build Docker Image
+	`docker-compose build`
+* Create and run Docker container
+	`docker-compose up`
 
 ### Linux
 This guide uses tomcat 8 and Ubuntu (please adjust accordingly for your setup)
