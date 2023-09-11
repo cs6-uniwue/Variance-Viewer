@@ -1,6 +1,8 @@
 <%@tag description="Main Webpage Tag" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<jsp:useBean id="date" class="java.util.Date" />
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -30,7 +32,7 @@
 	<main> <jsp:doBody /> </main>
 	<footer>
 	<hr>
-	<p>© 2018-2019 Universität Würzburg <a href="https://www.uni-wuerzburg.de/sonstiges/impressum">Impressum</a></p>
+	<p>© 2018 - <fmt:formatDate value="${date}" pattern="yyyy" /> Universität Würzburg <a href="https://www.uni-wuerzburg.de/sonstiges/impressum">Impressum</a></p>
 	</footer>
 </body>
 </html>
